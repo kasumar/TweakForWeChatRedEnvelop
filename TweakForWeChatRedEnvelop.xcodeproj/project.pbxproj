@@ -1,0 +1,412 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		37B484FD1AFC62250085A7EA /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 37B484FC1AFC62250085A7EA /* Foundation.framework */; };
+		37B485081AFC62250085A7EA /* TweakForWeChatRedEnvelop.mm in Sources */ = {isa = PBXBuildFile; fileRef = 37B485071AFC62250085A7EA /* TweakForWeChatRedEnvelop.mm */; };
+		37B485151AFC642C0085A7EA /* libsubstrate.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 37B485141AFC642C0085A7EA /* libsubstrate.dylib */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		37804EA21C60A19800629616 /* HeaderForWeChatRedEnvelop.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HeaderForWeChatRedEnvelop.h; sourceTree = "<group>"; };
+		37B484F91AFC62250085A7EA /* TweakForWeChatRedEnvelop.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = TweakForWeChatRedEnvelop.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		37B484FC1AFC62250085A7EA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		37B485011AFC62250085A7EA /* control.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = control.txt; path = Package/DEBIAN/control.txt; sourceTree = "<group>"; };
+		37B485021AFC62250085A7EA /* control */ = {isa = PBXFileReference; lastKnownFileType = text; name = control; path = Package/DEBIAN/control; sourceTree = "<group>"; };
+		37B485041AFC62250085A7EA /* PackageVersion.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PackageVersion.plist; sourceTree = "<group>"; };
+		37B485051AFC62250085A7EA /* TweakForWeChatRedEnvelop-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "TweakForWeChatRedEnvelop-Prefix.pch"; sourceTree = "<group>"; };
+		37B485061AFC62250085A7EA /* TweakForWeChatRedEnvelop.xm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TweakForWeChatRedEnvelop.xm; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
+		37B485071AFC62250085A7EA /* TweakForWeChatRedEnvelop.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TweakForWeChatRedEnvelop.mm; sourceTree = "<group>"; };
+		37B4850C1AFC62250085A7EA /* TweakForWeChatRedEnvelop.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = TweakForWeChatRedEnvelop.plist; path = Package/Library/MobileSubstrate/DynamicLibraries/TweakForWeChatRedEnvelop.plist; sourceTree = "<group>"; };
+		37B485141AFC642C0085A7EA /* libsubstrate.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libsubstrate.dylib; path = ../../../../../opt/iOSOpenDev/lib/libsubstrate.dylib; sourceTree = "<group>"; };
+		37E1C0901C61A4BC008A7244 /* ConfigForWeChatRedEnvelop.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = ConfigForWeChatRedEnvelop.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		37B484F51AFC62250085A7EA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				37B485151AFC642C0085A7EA /* libsubstrate.dylib in Frameworks */,
+				37B484FD1AFC62250085A7EA /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		37B484EE1AFC62250085A7EA = {
+			isa = PBXGroup;
+			children = (
+				37B484FE1AFC62250085A7EA /* TweakForWeChatRedEnvelop */,
+				37B484FB1AFC62250085A7EA /* Frameworks */,
+				37B484FA1AFC62250085A7EA /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		37B484FA1AFC62250085A7EA /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				37B484F91AFC62250085A7EA /* TweakForWeChatRedEnvelop.dylib */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		37B484FB1AFC62250085A7EA /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				37B485141AFC642C0085A7EA /* libsubstrate.dylib */,
+				37B484FC1AFC62250085A7EA /* Foundation.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		37B484FE1AFC62250085A7EA /* TweakForWeChatRedEnvelop */ = {
+			isa = PBXGroup;
+			children = (
+				37804EA21C60A19800629616 /* HeaderForWeChatRedEnvelop.h */,
+				37B485061AFC62250085A7EA /* TweakForWeChatRedEnvelop.xm */,
+				37B485071AFC62250085A7EA /* TweakForWeChatRedEnvelop.mm */,
+				37B484FF1AFC62250085A7EA /* Package */,
+				37B485031AFC62250085A7EA /* Supporting Files */,
+			);
+			path = TweakForWeChatRedEnvelop;
+			sourceTree = "<group>";
+		};
+		37B484FF1AFC62250085A7EA /* Package */ = {
+			isa = PBXGroup;
+			children = (
+				37E1C08B1C61A4BC008A7244 /* var */,
+				37B485001AFC62250085A7EA /* DEBIAN */,
+				37B485091AFC62250085A7EA /* Library */,
+			);
+			name = Package;
+			sourceTree = "<group>";
+		};
+		37B485001AFC62250085A7EA /* DEBIAN */ = {
+			isa = PBXGroup;
+			children = (
+				37B485011AFC62250085A7EA /* control.txt */,
+				37B485021AFC62250085A7EA /* control */,
+			);
+			name = DEBIAN;
+			sourceTree = "<group>";
+		};
+		37B485031AFC62250085A7EA /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				37B485041AFC62250085A7EA /* PackageVersion.plist */,
+				37B485051AFC62250085A7EA /* TweakForWeChatRedEnvelop-Prefix.pch */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		37B485091AFC62250085A7EA /* Library */ = {
+			isa = PBXGroup;
+			children = (
+				37B4850A1AFC62250085A7EA /* MobileSubstrate */,
+			);
+			name = Library;
+			sourceTree = "<group>";
+		};
+		37B4850A1AFC62250085A7EA /* MobileSubstrate */ = {
+			isa = PBXGroup;
+			children = (
+				37B4850B1AFC62250085A7EA /* DynamicLibraries */,
+			);
+			name = MobileSubstrate;
+			sourceTree = "<group>";
+		};
+		37B4850B1AFC62250085A7EA /* DynamicLibraries */ = {
+			isa = PBXGroup;
+			children = (
+				37B4850C1AFC62250085A7EA /* TweakForWeChatRedEnvelop.plist */,
+			);
+			name = DynamicLibraries;
+			sourceTree = "<group>";
+		};
+		37E1C08B1C61A4BC008A7244 /* var */ = {
+			isa = PBXGroup;
+			children = (
+				37E1C08C1C61A4BC008A7244 /* mobile */,
+			);
+			name = var;
+			path = Package/var;
+			sourceTree = "<group>";
+		};
+		37E1C08C1C61A4BC008A7244 /* mobile */ = {
+			isa = PBXGroup;
+			children = (
+				37E1C08D1C61A4BC008A7244 /* Media */,
+			);
+			path = mobile;
+			sourceTree = "<group>";
+		};
+		37E1C08D1C61A4BC008A7244 /* Media */ = {
+			isa = PBXGroup;
+			children = (
+				37E1C08E1C61A4BC008A7244 /* iTunes_Control */,
+			);
+			path = Media;
+			sourceTree = "<group>";
+		};
+		37E1C08E1C61A4BC008A7244 /* iTunes_Control */ = {
+			isa = PBXGroup;
+			children = (
+				37E1C08F1C61A4BC008A7244 /* iTunes */,
+			);
+			path = iTunes_Control;
+			sourceTree = "<group>";
+		};
+		37E1C08F1C61A4BC008A7244 /* iTunes */ = {
+			isa = PBXGroup;
+			children = (
+				37E1C0901C61A4BC008A7244 /* ConfigForWeChatRedEnvelop.plist */,
+			);
+			path = iTunes;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		37B484F61AFC62250085A7EA /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		37B484F81AFC62250085A7EA /* TweakForWeChatRedEnvelop */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 37B4850F1AFC62250085A7EA /* Build configuration list for PBXNativeTarget "TweakForWeChatRedEnvelop" */;
+			buildPhases = (
+				37B484F31AFC62250085A7EA /* ShellScript */,
+				37B484F41AFC62250085A7EA /* Sources */,
+				37B484F51AFC62250085A7EA /* Frameworks */,
+				37B484F61AFC62250085A7EA /* Headers */,
+				37B484F71AFC62250085A7EA /* ShellScript */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TweakForWeChatRedEnvelop;
+			productName = TweakForWeChatRedEnvelop;
+			productReference = 37B484F91AFC62250085A7EA /* TweakForWeChatRedEnvelop.dylib */;
+			productType = "com.apple.product-type.library.dynamic";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		37B484EF1AFC62250085A7EA /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0500;
+			};
+			buildConfigurationList = 37B484F21AFC62250085A7EA /* Build configuration list for PBXProject "TweakForWeChatRedEnvelop" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 37B484EE1AFC62250085A7EA;
+			productRefGroup = 37B484FA1AFC62250085A7EA /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				37B484F81AFC62250085A7EA /* TweakForWeChatRedEnvelop */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		37B484F31AFC62250085A7EA /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "/opt/iOSOpenDev/bin/iosod --xcbp-logos";
+		};
+		37B484F71AFC62250085A7EA /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "/opt/iOSOpenDev/bin/iosod --xcbp";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		37B484F41AFC62250085A7EA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				37B485081AFC62250085A7EA /* TweakForWeChatRedEnvelop.mm in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		37B4850D1AFC62250085A7EA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_INCLUDING_64_BIT)";
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				EXCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES = "*.nib *.lproj *.gch (*) .DS_Store CVS .svn .git .hg *.xcodeproj *.xcode *.pbproj *.pbxproj";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(iOSOpenDevPath)/frameworks/**",
+					"$(SDKROOT)/System/Library/PrivateFrameworks",
+				);
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = "$(iOSOpenDevPath)/include/**";
+				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
+				LIBRARY_SEARCH_PATHS = "$(iOSOpenDevPath)/lib/**";
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = NO;
+				iOSOpenDevPath = /opt/iOSOpenDev;
+			};
+			name = Debug;
+		};
+		37B4850E1AFC62250085A7EA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_INCLUDING_64_BIT)";
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = YES;
+				EXCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES = "*.nib *.lproj *.gch (*) .DS_Store CVS .svn .git .hg *.xcodeproj *.xcode *.pbproj *.pbxproj";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(iOSOpenDevPath)/frameworks/**",
+					"$(SDKROOT)/System/Library/PrivateFrameworks",
+				);
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = "$(iOSOpenDevPath)/include/**";
+				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
+				LIBRARY_SEARCH_PATHS = "$(iOSOpenDevPath)/lib/**";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+				iOSOpenDevPath = /opt/iOSOpenDev;
+			};
+			name = Release;
+		};
+		37B485101AFC62250085A7EA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
+				CODE_SIGN_IDENTITY = "";
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop-Prefix.pch";
+				HEADER_SEARCH_PATHS = "$(iOSOpenDevPath)/include/**";
+				INSTALL_PATH = /Library/MobileSubstrate/DynamicLibraries;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(iOSOpenDevPath)/lib/**",
+					/opt/theos/lib,
+					/opt/iOSOpenDev/lib,
+				);
+				PRODUCT_NAME = TweakForWeChatRedEnvelop;
+				VALID_ARCHS = "armv7 armv7s";
+				iOSOpenDevBuildPackageOnAnyBuild = NO;
+				iOSOpenDevCopyOnBuild = NO;
+				iOSOpenDevDevice = "";
+				iOSOpenDevInstallOnAnyBuild = NO;
+				iOSOpenDevInstallOnProfiling = YES;
+				iOSOpenDevRespringOnInstall = YES;
+				iOSOpenDevUsePackageVersionPList = YES;
+			};
+			name = Debug;
+		};
+		37B485111AFC62250085A7EA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
+				CODE_SIGN_IDENTITY = "";
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop-Prefix.pch";
+				HEADER_SEARCH_PATHS = "$(iOSOpenDevPath)/include/**";
+				INSTALL_PATH = /Library/MobileSubstrate/DynamicLibraries;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(iOSOpenDevPath)/lib/**",
+					/opt/theos/lib,
+					/opt/iOSOpenDev/lib,
+				);
+				PRODUCT_NAME = TweakForWeChatRedEnvelop;
+				VALID_ARCHS = "armv7 armv7s";
+				iOSOpenDevBuildPackageOnAnyBuild = NO;
+				iOSOpenDevCopyOnBuild = NO;
+				iOSOpenDevDevice = "";
+				iOSOpenDevInstallOnAnyBuild = NO;
+				iOSOpenDevInstallOnProfiling = YES;
+				iOSOpenDevRespringOnInstall = YES;
+				iOSOpenDevUsePackageVersionPList = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		37B484F21AFC62250085A7EA /* Build configuration list for PBXProject "TweakForWeChatRedEnvelop" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				37B4850D1AFC62250085A7EA /* Debug */,
+				37B4850E1AFC62250085A7EA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		37B4850F1AFC62250085A7EA /* Build configuration list for PBXNativeTarget "TweakForWeChatRedEnvelop" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				37B485101AFC62250085A7EA /* Debug */,
+				37B485111AFC62250085A7EA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 37B484EF1AFC62250085A7EA /* Project object */;
+}
