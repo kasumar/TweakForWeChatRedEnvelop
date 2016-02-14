@@ -226,7 +226,7 @@ static void _logos_method$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$(
                                                 [dictParam setObject:strNativeUrl forKey:@"nativeUrl"];                                         
                                                 [dictParam setObject:[contact getContactDisplayName] forKey:@"nickName"];                       
                                                 [dictParam setObject:[dictNativeUrl objectForKey:@"sendid"] forKey:@"sendId"];                  
-                                                [dictParam setObject:[dictNativeUrl objectForKey:@"sendusername"] forKey:@"sessionUserName"];   
+                                                [dictParam setObject:[msgWrap m_nsFromUsr] forKey:@"sessionUserName"];                          
                                                 
 
                                                 

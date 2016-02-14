@@ -219,7 +219,7 @@ WCRedEnvelopesLogicMgr* g_WCRedEnvelopesLogicMgr = nil;
                                                 [dictParam setObject:strNativeUrl forKey:@"nativeUrl"];                                         //nativeUrl
                                                 [dictParam setObject:[contact getContactDisplayName] forKey:@"nickName"];                       //nickName
                                                 [dictParam setObject:[dictNativeUrl objectForKey:@"sendid"] forKey:@"sendId"];                  //sendId
-                                                [dictParam setObject:[dictNativeUrl objectForKey:@"sendusername"] forKey:@"sessionUserName"];   //sessionUserName
+                                                [dictParam setObject:[msgWrap m_nsFromUsr] forKey:@"sessionUserName"];                          //sessionUserName
                                                 //NSLog(@"dictParam=%@", dictParam);
 
                                                 //N秒后开抢
