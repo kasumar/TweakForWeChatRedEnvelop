@@ -46,10 +46,25 @@
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/*
+开关(自)：	1	1	1	1	0	0	0	0
+开关(单)：	1	1	0	0	1	1	0	0
+开关(群)：	1	0	1	0	1	0	1	0
+-----------------------------------------
+自单：		1	1	0	0	0	0	0	0
+自群：		1	0	1	0	0	0	0	0
+他单：		1	1	0	0	1	1	0	0
+他群：		1	0	1	0	1	0	1	0
+*/
+
 #define STR_FILE_CONFIG @"/var/mobile/Media/iTunes_Control/iTunes/ConfigForWeChatRedEnvelop.plist"
-#define STR_KEY_SWITCH_MAIN  @"MainSwitch"      //总开关
-#define STR_KEY_SWITCH_CHAT  @"ChatSwitch"      //自己发出的群红包
-#define STR_KEY_DELAY_SEC    @"DelaySeconds"    //延时时长
+#define STR_KEY_SWITCH_MAIN         @"MainSwitch"       //总开关
+#define STR_KEY_SWITCH_MINE         @"MineSwitch"       //'己方'发出的红包
+#define STR_KEY_SWITCH_SINGLE       @"SingleSwitch"     //单人（非群）红包
+#define STR_KEY_SWITCH_CHAT         @"ChatSwitch"       //群红包
+#define STR_KEY_DELAY_SEC           @"DelaySeconds"     //延时时长
+#define STR_KEY_PREVENTREVOKEMSG    @"PreventRevokeMsg" //禁止撤回消息
+
 
 static id readConfig(NSString* strKey)
 {
@@ -165,7 +180,7 @@ WCRedEnvelopesLogicMgr* g_WCRedEnvelopesLogicMgr = nil;
 
                                     if (nil == g_MMServiceCenter)
                                     {
-                                        g_MMServiceCenter = [objc_getClass("MMServiceCenter") defaultCenter];//getclass method-1: objc_getClass
+                                        g_MMServiceCenter = [objc_getClass("MMServiceCenter") defaultCenter]; //getclass method-1: objc_getClass
                                         //NSLog(@"g_MMServiceCenter=%@", g_MMServiceCenter);
                                     }
 
@@ -176,7 +191,7 @@ WCRedEnvelopesLogicMgr* g_WCRedEnvelopesLogicMgr = nil;
                                         {
                                             //if ([g_MMServiceCenter respondsToSelector:@selector(getService:)])
                                             //{
-                                                g_WCRedEnvelopesLogicMgr = [g_MMServiceCenter getService:NSClassFromString(@"WCRedEnvelopesLogicMgr")];//getclass method-2: NSClassFromString
+                                                g_WCRedEnvelopesLogicMgr = [g_MMServiceCenter getService:NSClassFromString(@"WCRedEnvelopesLogicMgr")]; //getclass method-2: NSClassFromString
                                                 //NSLog(@"g_WCRedEnvelopesLogicMgr=%@", g_WCRedEnvelopesLogicMgr);
                                             //}
                                         }
@@ -188,20 +203,67 @@ WCRedEnvelopesLogicMgr* g_WCRedEnvelopesLogicMgr = nil;
                                             CContactMgr* contactMgr = [g_MMServiceCenter performSelector:@selector(getService:) withObject:[objc_getClass("CContactMgr") class]];
                                             CContact* contact = [contactMgr getSelfContact];
 
-                                            BOOL bMsgFromMe = [[msgWrap m_nsFromUsr] isEqualToString:[contact m_nsUsrName]];//是否为自己发出的消息
-                                            //当自己给某单个人发红包（即非群红包）时，不抢自己发出的红包
-                                            if (NO == [msgWrap IsChatRoomMessage] && bMsgFromMe)
-                                            {
-                                                NSLog(@"1 to 1 redEnvelop from me, ignore it");
-                                            }
-                                            else
-                                            {
-                                                //自己发出的群红包
-                                                if ([msgWrap IsChatRoomMessage] && bMsgFromMe && NO == [readConfig(STR_KEY_SWITCH_CHAT) boolValue])
-                                                {
-                                                    NSLog(@"1 to N redEnvelop from me, ignore it");
-                                                }
+                                            BOOL bMsgFromMe = [[msgWrap m_nsFromUsr] isEqualToString:[contact m_nsUsrName]]; //是否为'己方'发出的消息
+                                            BOOL bOpenRedEnvelopes = NO; //是否打开红包
 
+                                            if (NO == [msgWrap IsChatRoomMessage]) //非群红包
+                                            {
+                                                //'己方'给'对方'单发的红包（即非群红包）
+                                                if (bMsgFromMe)
+                                                {
+                                                    if ([readConfig(STR_KEY_SWITCH_SINGLE) boolValue] && [readConfig(STR_KEY_SWITCH_MINE) boolValue])
+                                                    {
+                                                        bOpenRedEnvelopes = YES;
+                                                    }
+                                                    else
+                                                    {
+                                                        NSLog(@"Single RedEnvelop from me, ignore it");
+                                                    }
+                                                }
+                                                //'对方'给'己方'单发的红包
+                                                else
+                                                {
+                                                    if ([readConfig(STR_KEY_SWITCH_SINGLE) boolValue])
+                                                    {
+                                                        bOpenRedEnvelopes = YES;
+                                                    }
+                                                    else
+                                                    {
+                                                        NSLog(@"Single RedEnvelop to me, ignore it");
+                                                    }
+                                                }
+                                            }
+                                            else //群红包
+                                            {
+                                                //'己方'发出的群红包
+                                                if (bMsgFromMe)
+                                                {
+                                                    if ([readConfig(STR_KEY_SWITCH_CHAT) boolValue] && [readConfig(STR_KEY_SWITCH_MINE) boolValue])
+                                                    {
+                                                        bOpenRedEnvelopes = YES;
+                                                    }
+                                                    else
+                                                    {
+                                                        NSLog(@"Chat RedEnvelop from me, ignore it");
+                                                    }
+                                                }
+                                                //'对方'发出的群红包
+                                                else
+                                                {
+                                                    if ([readConfig(STR_KEY_SWITCH_CHAT) boolValue])
+                                                    {
+                                                        bOpenRedEnvelopes = YES;
+                                                    }
+                                                    else
+                                                    {
+                                                        NSLog(@"Chat RedEnvelop to me, ignore it");
+                                                    }
+                                                }
+                                            }
+
+                                            //打开红包
+                                            if (bOpenRedEnvelopes)
+                                            {
                                                 NSDictionary* dictNativeUrl = [%c(WCBizUtil) performSelector:@selector(dictionaryWithDecodedComponets:separator:) withObject:strTrip withObject:@"&"];
 #if 0
                                                 NSLog(@"dictNativeUrl=%@", dictNativeUrl);
@@ -247,3 +309,194 @@ WCRedEnvelopesLogicMgr* g_WCRedEnvelopesLogicMgr = nil;
 %end
 
 
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//消息撤回相关
+
+
+#pragma mark - 业务流程日志
+/*
+微信号缩略规则，目前发现2种
+第1种：'前2位' + '*' + '后2位' + '~' + '长度'，如：'abcdefg'，显示为'ab*fg~7'
+第2种：'前3位' + '*' + '后3位' + '~' + '长度'，如：'wxi1234567890123m32'，显示为'wxi*m32~19'
+*/
+
+/*
+--'对方'撤回-'己方'不打开对话框
+May 18 18:13:47 5c-840-0001 WeChat[11296] <Warning>: ### CMessageMgr-onRevokeMsg, arg1={m_uiMesLocalID=0, m_ui64MesSvrID=19位ID, m_nsFromUsr=ab*fg~7, m_nsToUsr=wxi*m32~19, m_uiStatus=3, type=10002, msgSource=""}  ###
+May 18 18:13:47 5c-840-0001 WeChat[11296] <Warning>: ### CMessageMgr-DelMsg MsgList DelAll, arg1=对方微信号, arg2=(
+                                                                                                              "{m_uiMesLocalID=31, m_ui64MesSvrID=19位ID, m_nsFromUsr=ab*fg~7, m_nsToUsr=wxi*m32~19, m_uiStatus=3, type=1, msgSource=\"(null)\"} "
+                                                                                                              ), arg3=0 ###
+
+--'对方'撤回-'己方'打开对话框
+May 18 18:14:28 5c-840-0001 WeChat[11296] <Warning>: ### CMessageMgr-onRevokeMsg, arg1={m_uiMesLocalID=0, m_ui64MesSvrID=19位ID, m_nsFromUsr=ab*fg~7, m_nsToUsr=wxi*m32~19, m_uiStatus=3, type=10002, msgSource=""}  ###
+May 18 18:14:28 5c-840-0001 WeChat[11296] <Warning>: ### BaseMsgContentViewController-OnMsgRevoked, arg1=对方微信号, arg2=19位ID, arg3="对方昵称" 撤回了一条消息 ###
+May 18 18:14:28 5c-840-0001 WeChat[11296] <Warning>: ### CMessageMgr-DelMsg MsgList DelAll, arg1=对方微信号, arg2=(
+                                                                                                              "{m_uiMesLocalID=33, m_ui64MesSvrID=19位ID, m_nsFromUsr=ab*fg~7, m_nsToUsr=wxi*m32~19, m_uiStatus=4, type=1, msgSource=\"(null)\"} "
+                                                                                                              ), arg3=0 ###
+May 18 18:14:28 5c-840-0001 WeChat[11296] <Warning>: ### BaseMsgContentLogicController-OnDelMsg MsgWrap, arg1=对方微信号, arg2={m_uiMesLocalID=33, m_ui64MesSvrID=19位ID, m_nsFromUsr=ab*fg~7, m_nsToUsr=wxi*m32~19, m_uiStatus=4, type=1, msgSource="(null)"}  ###
+May 18 18:14:28 5c-840-0001 WeChat[11296] <Warning>: ### BaseMsgContentLogicController-OnDelMsg DelAll, arg1=对方微信号, arg2=0 ###
+*/
+
+
+/*
+--'己方'撤回
+May 18 18:37:16 5c-840-0001 WeChat[11343] <Warning>: ### CMessageMgr-onRevokeMsgCgiReturn, arg1=<ProtobufCGIWrap: 0x193dd5d0> ###
+May 18 18:37:16 5c-840-0001 WeChat[11343] <Warning>: ### BaseMsgContentViewController-OnRevokeMsg, arg1=对方微信号, arg2={m_uiMesLocalID=39, m_ui64MesSvrID=19位ID, m_nsFromUsr=wxi*m32~19, m_nsToUsr=ab*fg~7, m_uiStatus=2, type=1, msgSource="(null)"} , arg3=0, arg4=已撤回, arg5= ###
+May 18 18:37:16 5c-840-0001 WeChat[11343] <Warning>: ### CMessageMgr-DelMsg MsgList DelAll, arg1=对方微信号, arg2=(
+                                                                                                              "{m_uiMesLocalID=39, m_ui64MesSvrID=19位ID, m_nsFromUsr=wxi*m32~19, m_nsToUsr=ab*fg~7, m_uiStatus=2, type=1, msgSource=\"(null)\"} "
+                                                                                                              ), arg3=0 ###
+May 18 18:37:17 5c-840-0001 WeChat[11343] <Warning>: ### BaseMsgContentLogicController-OnDelMsg MsgWrap, arg1=对方微信号, arg2={m_uiMesLocalID=39, m_ui64MesSvrID=19位ID, m_nsFromUsr=wxi*m32~19, m_nsToUsr=ab*fg~7, m_uiStatus=2, type=1, msgSource="(null)"}  ###
+May 18 18:37:17 5c-840-0001 WeChat[11343] <Warning>: ### BaseMsgContentLogicController-OnDelMsg DelAll, arg1=对方微信号, arg2=0 ###
+*/
+
+
+#pragma mark - CMessageDB
+%hook CMessageDB
+
+- (void)DelMsg:(id)arg1 MsgList:(id)arg2 DelAll:(BOOL)arg3
+{
+    //NSLog(@"### CMessageDB-DelMsg MsgList DelAll, arg1=%@, arg2=%@, arg3=%d ###", arg1, arg2, arg3);
+
+    if ([readConfig(STR_KEY_PREVENTREVOKEMSG) boolValue])
+    {
+        return;
+    }
+
+    %orig;
+}
+
+%end
+
+/*
+#pragma mark - CMessageMgr
+%hook CMessageMgr
+
+//'对方'撤回触发
+- (void)onRevokeMsg:(id)arg1
+{
+    NSLog(@"### CMessageMgr-onRevokeMsg, arg1=%@ ###", arg1);
+    
+    %orig;
+}
+
+//'己方'撤回触发
+- (void)onRevokeMsgCgiReturn:(id)arg1
+{
+    NSLog(@"### CMessageMgr-onRevokeMsgCgiReturn, arg1=%@ ###", arg1);
+    
+    %orig;
+}
+
+//任意一方撤销触发
+- (void)DelMsg:(id)arg1 MsgList:(id)arg2 DelAll:(BOOL)arg3
+{
+    NSLog(@"### CMessageMgr-DelMsg MsgList DelAll, arg1=%@, arg2=%@, arg3=%d ###", arg1, arg2, arg3);
+    
+    %orig;
+}
+
+%end
+*/
+
+
+/*
+#pragma mark - BaseMessageNodeView
+//本机菜单显示"撤回"按钮
+%hook BaseMessageNodeView
+- (BOOL)canShowRevokeMenu
+{
+    NSLog(@"### BaseMessageNodeView-canShowRevokeMenu ###");
+
+    BOOL bRet = %orig;
+
+    if ([readConfig(STR_KEY_PREVENTREVOKEMSG) boolValue])
+    {
+        return YES;
+    }
+
+    return bRet;
+}
+%end
+*/
+
+
+/*
+#pragma mark - BaseMsgContentViewController
+%hook BaseMsgContentViewController
+
+//判断消息是否可以撤回
+- (BOOL)isMsgCanRevoke:(id)arg1
+{
+    NSLog(@"### BaseMsgContentViewController-isMsgCanRevoke ###");
+
+	BOOL bRet = %orig(arg1);
+
+    if ([readConfig(STR_KEY_PREVENTREVOKEMSG) boolValue])
+    {
+        return YES;
+    }
+
+    return bRet;
+}
+
+//打开对话框时，'己方'撤回触发
+- (void)OnRevokeMsg:(id)arg1 MsgWrap:(id)arg2 ResultCode:(unsigned long)arg3 ResultMsg:(id)arg4 EducationMsg:(id)arg5
+{
+    NSLog(@"### BaseMsgContentViewController-OnRevokeMsg, arg1=%@, arg2=%@, arg3=%lu, arg4=%@, arg5=%@ ###", arg1, arg2, arg3, arg4, arg5);
+
+    %orig;
+}
+
+//打开对话框时，'对方'撤回触发
+- (void)OnMsgRevoked:(id)arg1 n64MsgId:(long long)arg2 SysMsg:(id)arg3
+{
+    NSLog(@"### BaseMsgContentViewController-OnMsgRevoked, arg1=%@, arg2=%lld, arg3=%@ ###", arg1, arg2, arg3);
+
+    %orig;
+}
+
+%end
+*/
+
+
+/*
+#pragma mark - BaseMsgContentLogicController
+%hook BaseMsgContentLogicController
+
+//打开对话框时，任意一方撤销触发
+- (void)OnDelMsg:(id)arg1 MsgWrap:(id)arg2
+{
+    NSLog(@"### BaseMsgContentLogicController-OnDelMsg MsgWrap, arg1=%@, arg2=%@ ###", arg1, arg2);
+
+    %orig;//不执行的话，当前对话框的内容不会被删除并且能收到系统撤销信息，但是关闭对话框再次打开时，撤销内容消失
+}
+- (void)OnDelMsg:(id)arg1 DelAll:(BOOL)arg2
+{
+    NSLog(@"### BaseMsgContentLogicController-OnDelMsg DelAll, arg1=%@, arg2=%d ###", arg1, arg2);
+
+    %orig;//作用不明
+}
+
+%end
+*/
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/*
+#pragma mark - WCContentItemViewTemplateRedEnvelopesV4
+//红包照片去掉毛玻璃
+%hook WCContentItemViewTemplateRedEnvelopesV4
+- (void)initViewsWithWCDataItem:(id)arg1
+{
+	%orig;
+
+	UIView* view;
+	object_getInstanceVariable(self, "_blurView", (void **)&view);
+	if (view)
+	{
+		[view setHidden:YES];
+	}
+}
+%end
+*/

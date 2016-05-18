@@ -4,9 +4,15 @@
 <dict>
 	<key>MainSwitch</key>
 	<true/>
-	<key>ChatSwitch</key>
+	<key>MineSwitch</key>
 	<false/>
+	<key>SingleSwitch</key>
+	<false/>
+	<key>ChatSwitch</key>
+	<true/>
 	<key>DelaySeconds</key>
-	<real>1.2</real>
+	<real>2.5</real>
+	<key>PreventRevokeMsg</key>
+	<false/>
 </dict>
 </plist>
