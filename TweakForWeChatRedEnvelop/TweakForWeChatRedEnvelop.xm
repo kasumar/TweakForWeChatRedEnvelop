@@ -351,15 +351,19 @@ May 18 18:37:17 5c-840-0001 WeChat[11343] <Warning>: ### BaseMsgContentLogicCont
 */
 
 
+BOOL g_bRevokeMsgFromOther = NO; //标识'对方'撤销消息
+
 #pragma mark - CMessageDB
 %hook CMessageDB
 
+//删除消息触发
 - (void)DelMsg:(id)arg1 MsgList:(id)arg2 DelAll:(BOOL)arg3
 {
     //NSLog(@"### CMessageDB-DelMsg MsgList DelAll, arg1=%@, arg2=%@, arg3=%d ###", arg1, arg2, arg3);
 
-    if ([readConfig(STR_KEY_PREVENTREVOKEMSG) boolValue])
+    if ([readConfig(STR_KEY_PREVENTREVOKEMSG) boolValue] && g_bRevokeMsgFromOther)
     {
+        g_bRevokeMsgFromOther = NO;
         return;
     }
 
@@ -368,36 +372,38 @@ May 18 18:37:17 5c-840-0001 WeChat[11343] <Warning>: ### BaseMsgContentLogicCont
 
 %end
 
-/*
+
 #pragma mark - CMessageMgr
 %hook CMessageMgr
 
 //'对方'撤回触发
 - (void)onRevokeMsg:(id)arg1
 {
-    NSLog(@"### CMessageMgr-onRevokeMsg, arg1=%@ ###", arg1);
-    
+    //NSLog(@"### CMessageMgr-onRevokeMsg, arg1=%@ ###", arg1);
+
+    g_bRevokeMsgFromOther = TRUE;
+
     %orig;
 }
 
+/*
 //'己方'撤回触发
 - (void)onRevokeMsgCgiReturn:(id)arg1
 {
     NSLog(@"### CMessageMgr-onRevokeMsgCgiReturn, arg1=%@ ###", arg1);
-    
+
     %orig;
 }
 
-//任意一方撤销触发
+//删除消息触发
 - (void)DelMsg:(id)arg1 MsgList:(id)arg2 DelAll:(BOOL)arg3
 {
     NSLog(@"### CMessageMgr-DelMsg MsgList DelAll, arg1=%@, arg2=%@, arg3=%d ###", arg1, arg2, arg3);
-    
+
     %orig;
 }
-
-%end
 */
+%end
 
 
 /*
@@ -408,14 +414,7 @@ May 18 18:37:17 5c-840-0001 WeChat[11343] <Warning>: ### BaseMsgContentLogicCont
 {
     NSLog(@"### BaseMessageNodeView-canShowRevokeMenu ###");
 
-    BOOL bRet = %orig;
-
-    if ([readConfig(STR_KEY_PREVENTREVOKEMSG) boolValue])
-    {
-        return YES;
-    }
-
-    return bRet;
+    return %orig;
 }
 %end
 */
@@ -430,14 +429,7 @@ May 18 18:37:17 5c-840-0001 WeChat[11343] <Warning>: ### BaseMsgContentLogicCont
 {
     NSLog(@"### BaseMsgContentViewController-isMsgCanRevoke ###");
 
-	BOOL bRet = %orig(arg1);
-
-    if ([readConfig(STR_KEY_PREVENTREVOKEMSG) boolValue])
-    {
-        return YES;
-    }
-
-    return bRet;
+    return %orig;
 }
 
 //打开对话框时，'己方'撤回触发

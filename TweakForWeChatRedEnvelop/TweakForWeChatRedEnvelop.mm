@@ -83,8 +83,8 @@ WCRedEnvelopesLogicMgr* g_WCRedEnvelopesLogicMgr = nil;
 
 #include <logos/logos.h>
 #include <substrate.h>
-@class CMessageDB; @class WCBizUtil; @class CSyncBaseEvent; 
-static void (*_logos_orig$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$)(CSyncBaseEvent*, SEL, unsigned long, id); static void _logos_method$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$(CSyncBaseEvent*, SEL, unsigned long, id); static void (*_logos_orig$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$)(CMessageDB*, SEL, id, id, BOOL); static void _logos_method$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$(CMessageDB*, SEL, id, id, BOOL); 
+@class CMessageDB; @class WCBizUtil; @class CMessageMgr; @class CSyncBaseEvent; 
+static void (*_logos_orig$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$)(CSyncBaseEvent*, SEL, unsigned long, id); static void _logos_method$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$(CSyncBaseEvent*, SEL, unsigned long, id); static void (*_logos_orig$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$)(CMessageDB*, SEL, id, id, BOOL); static void _logos_method$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$(CMessageDB*, SEL, id, id, BOOL); static void (*_logos_orig$_ungrouped$CMessageMgr$onRevokeMsg$)(CMessageMgr*, SEL, id); static void _logos_method$_ungrouped$CMessageMgr$onRevokeMsg$(CMessageMgr*, SEL, id); 
 static __inline__ __attribute__((always_inline)) Class _logos_static_class_lookup$WCBizUtil(void) { static Class _klass; if(!_klass) { _klass = objc_getClass("WCBizUtil"); } return _klass; }
 #line 83 "/Users/lbh/Documents/My/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop.xm"
 
@@ -358,19 +358,39 @@ static void _logos_method$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$(
 
 
 
+BOOL g_bRevokeMsgFromOther = NO; 
+
 #pragma mark - CMessageDB
+
 
 
 
 static void _logos_method$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$(CMessageDB* self, SEL _cmd, id arg1, id arg2, BOOL arg3) {
     
 
-    if ([readConfig(STR_KEY_PREVENTREVOKEMSG) boolValue])
+    if ([readConfig(STR_KEY_PREVENTREVOKEMSG) boolValue] && g_bRevokeMsgFromOther)
     {
+        g_bRevokeMsgFromOther = NO;
         return;
     }
 
     _logos_orig$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$(self, _cmd, arg1, arg2, arg3);
+}
+
+
+
+
+#pragma mark - CMessageMgr
+
+
+
+
+static void _logos_method$_ungrouped$CMessageMgr$onRevokeMsg$(CMessageMgr* self, SEL _cmd, id arg1) {
+    
+
+    g_bRevokeMsgFromOther = TRUE;
+
+    _logos_orig$_ungrouped$CMessageMgr$onRevokeMsg$(self, _cmd, arg1);
 }
 
 
@@ -479,34 +499,6 @@ static void _logos_method$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$(CMessageD
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 static __attribute__((constructor)) void _logosLocalInit() {
-{Class _logos_class$_ungrouped$CSyncBaseEvent = objc_getClass("CSyncBaseEvent"); MSHookMessageEx(_logos_class$_ungrouped$CSyncBaseEvent, @selector(NotifyFromPrtl:MessageInfo:), (IMP)&_logos_method$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$, (IMP*)&_logos_orig$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$);Class _logos_class$_ungrouped$CMessageDB = objc_getClass("CMessageDB"); MSHookMessageEx(_logos_class$_ungrouped$CMessageDB, @selector(DelMsg:MsgList:DelAll:), (IMP)&_logos_method$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$, (IMP*)&_logos_orig$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$);} }
-#line 503 "/Users/lbh/Documents/My/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop.xm"
+{Class _logos_class$_ungrouped$CSyncBaseEvent = objc_getClass("CSyncBaseEvent"); MSHookMessageEx(_logos_class$_ungrouped$CSyncBaseEvent, @selector(NotifyFromPrtl:MessageInfo:), (IMP)&_logos_method$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$, (IMP*)&_logos_orig$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$);Class _logos_class$_ungrouped$CMessageDB = objc_getClass("CMessageDB"); MSHookMessageEx(_logos_class$_ungrouped$CMessageDB, @selector(DelMsg:MsgList:DelAll:), (IMP)&_logos_method$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$, (IMP*)&_logos_orig$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$);Class _logos_class$_ungrouped$CMessageMgr = objc_getClass("CMessageMgr"); MSHookMessageEx(_logos_class$_ungrouped$CMessageMgr, @selector(onRevokeMsg:), (IMP)&_logos_method$_ungrouped$CMessageMgr$onRevokeMsg$, (IMP*)&_logos_orig$_ungrouped$CMessageMgr$onRevokeMsg$);} }
+#line 495 "/Users/lbh/Documents/My/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop.xm"
