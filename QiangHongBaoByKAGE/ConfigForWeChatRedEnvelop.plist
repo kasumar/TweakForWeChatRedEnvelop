@@ -14,5 +14,13 @@
 	<real>2.5</real>
 	<key>PreventRevokeMsg</key>
 	<false/>
+	<key>IgnoreSingle</key>
+	<array>
+		<string>填写用户的微信号</string>
+	</array>
+	<key>IgnoreChat</key>
+	<array>
+		<string>填写群的名称</string>
+	</array>
 </dict>
 </plist>
