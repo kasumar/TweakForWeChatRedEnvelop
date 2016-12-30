@@ -1,4 +1,4 @@
-#line 1 "/Users/lbh/Documents/My/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop.xm"
+#line 1 "/Users/KAGE/Documents/My/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop.xm"
 
 
 
@@ -46,6 +46,10 @@
 #import "HeaderForWeChatRedEnvelop.h"
 
 
+#define PROC_BEGIN do {
+#define PROC_END } while(0);
+
+
 
 
 
@@ -62,7 +66,9 @@
 #define STR_KEY_SWITCH_MAIN         @"MainSwitch"       
 #define STR_KEY_SWITCH_MINE         @"MineSwitch"       
 #define STR_KEY_SWITCH_SINGLE       @"SingleSwitch"     
+#define STR_KEY_IGNORE_SINGLE       @"IgnoreSingle"     
 #define STR_KEY_SWITCH_CHAT         @"ChatSwitch"       
+#define STR_KEY_IGNORE_CHAT         @"IgnoreChat"       
 #define STR_KEY_DELAY_SEC           @"DelaySeconds"     
 #define STR_KEY_PREVENTREVOKEMSG    @"PreventRevokeMsg" 
 
@@ -74,10 +80,40 @@ static id readConfig(NSString* strKey)
     return [dict objectForKey:strKey];
 }
 
+static BOOL isContain(NSString* strKey, id idList)
+{
+    if (idList && 0<[idList count])
+    {
+        for (NSString* obj in idList)
+        {
+            NSLog(@"obj=%@", obj);
+            if ([strKey isEqualToString:obj])
+            {
+                NSLog(@"~~~ Bingo! ~~~~");
+                return YES;
+            }
+        }
+    }
+
+    return NO;
+}
+
 
 
 MMServiceCenter* g_MMServiceCenter = nil;
 WCRedEnvelopesLogicMgr* g_WCRedEnvelopesLogicMgr = nil;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -86,12 +122,13 @@ WCRedEnvelopesLogicMgr* g_WCRedEnvelopesLogicMgr = nil;
 @class CMessageDB; @class WCBizUtil; @class CMessageMgr; @class CSyncBaseEvent; 
 static void (*_logos_orig$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$)(CSyncBaseEvent*, SEL, unsigned long, id); static void _logos_method$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$(CSyncBaseEvent*, SEL, unsigned long, id); static void (*_logos_orig$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$)(CMessageDB*, SEL, id, id, BOOL); static void _logos_method$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$(CMessageDB*, SEL, id, id, BOOL); static void (*_logos_orig$_ungrouped$CMessageMgr$onRevokeMsg$)(CMessageMgr*, SEL, id); static void _logos_method$_ungrouped$CMessageMgr$onRevokeMsg$(CMessageMgr*, SEL, id); 
 static __inline__ __attribute__((always_inline)) Class _logos_static_class_lookup$WCBizUtil(void) { static Class _klass; if(!_klass) { _klass = objc_getClass("WCBizUtil"); } return _klass; }
-#line 83 "/Users/lbh/Documents/My/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop.xm"
+#line 119 "/Users/KAGE/Documents/My/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop.xm"
 
 
 static void _logos_method$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$(CSyncBaseEvent* self, SEL _cmd, unsigned long arg1, id arg2) {
     
 
+PROC_BEGIN
 
 
 
@@ -150,6 +187,43 @@ static void _logos_method$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$(
 
 
 
+
+
+                if (nil == g_MMServiceCenter)
+                {
+                    g_MMServiceCenter = [objc_getClass("MMServiceCenter") defaultCenter]; 
+                    NSLog(@"g_MMServiceCenter=%@", g_MMServiceCenter);
+
+                    if (g_MMServiceCenter)
+                    {
+                        if (nil == g_WCRedEnvelopesLogicMgr)
+                        {
+                            if ([g_MMServiceCenter respondsToSelector:@selector(getService:)])
+                            {
+                                g_WCRedEnvelopesLogicMgr = [g_MMServiceCenter getService:NSClassFromString(@"WCRedEnvelopesLogicMgr")]; 
+                                
+                            }
+                            else
+                            {
+                                NSLog(@"Selector is deprecated: MMServiceCenter-getService:");
+                            }
+                        }
+                    }
+                }
+
+
+                if (nil == g_MMServiceCenter)
+                {
+                    NSLog(@"MMServiceCenter is nil");
+                    break;
+                }
+                if (nil == g_WCRedEnvelopesLogicMgr)
+                {
+                    NSLog(@"WCRedEnvelopesLogicMgr is nil");
+                    break;
+                }
+
+
                 if ([msgWrap IsAppMessage])
                 {
                     if (49 == [msgWrap m_uiMessageType])
@@ -164,6 +238,83 @@ static void _logos_method$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$(
 
                             NSLog(@"~~~~~ 天噜啦！快来抢红包啊！！！ ~~~~~");
 
+                            CContactMgr* contactMgr = [g_MMServiceCenter performSelector:@selector(getService:) withObject:[objc_getClass("CContactMgr") class]];
+                            CContact* contact = [contactMgr getSelfContact];
+
+                            BOOL bMsgFromMe = [[msgWrap m_nsFromUsr] isEqualToString:[contact m_nsUsrName]]; 
+
+                            if (NO == [msgWrap IsChatRoomMessage]) 
+                            {
+                                
+                                if (bMsgFromMe)
+                                {
+                                    if (NO == ([readConfig(STR_KEY_SWITCH_SINGLE) boolValue] && [readConfig(STR_KEY_SWITCH_MINE) boolValue]))
+                                    {
+                                        NSLog(@"Single RedEnvelop from me, ignore it");
+                                        break;
+                                    }
+                                }
+                                
+                                else
+                                {
+                                    if (NO == [readConfig(STR_KEY_SWITCH_SINGLE) boolValue])
+                                    {
+                                        NSLog(@"Single RedEnvelop to me, ignore it");
+                                        break;
+                                    }
+
+                                    
+                                    NSString* strName = [msgWrap GetChatName];
+                                    NSLog(@"strName=%@", strName);
+                                    id idList = readConfig(STR_KEY_IGNORE_SINGLE);
+                                    if (isContain(strName, idList))
+                                    {
+                                        NSLog(@"This user in the list of ignore.");
+                                        break;
+                                    }
+                                    
+                                }
+                            }
+                            else 
+                            {
+                                
+                                CContact* contactTemp = [contactMgr getContactByName:[msgWrap GetChatName]];
+                                if (nil != contactTemp)
+                                {
+                                    NSLog(@"getContactByName=%@", contactTemp);
+                                    NSString* strNickName = [contactTemp m_nsNickName];
+                                    NSLog(@"strNickName=%@", strNickName);
+                                    id idList = readConfig(STR_KEY_IGNORE_CHAT);
+                                    if (isContain(strNickName, idList))
+                                    {
+                                        NSLog(@"This chat in the list of ignore.");
+                                        break;
+                                    }
+                                }
+                                
+
+                                
+                                if (bMsgFromMe)
+                                {
+                                    if (NO == ([readConfig(STR_KEY_SWITCH_CHAT) boolValue] && [readConfig(STR_KEY_SWITCH_MINE) boolValue]))
+                                    {
+                                        NSLog(@"Chat RedEnvelop from me, ignore it");
+                                        break;
+                                    }
+                                }
+                                
+                                else
+                                {
+                                    if (NO == [readConfig(STR_KEY_SWITCH_CHAT) boolValue])
+                                    {
+                                        NSLog(@"Chat RedEnvelop to me, ignore it");
+                                        break;
+                                    }
+                                }
+                            }
+
+
+                            NSLog(@"~~~~~ 准备抢红包！！！ ~~~~~");
                             
                             
                             NSString* strTemp = [msgWrap m_nsContent];
@@ -174,135 +325,40 @@ static void _logos_method$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$(
                                 NSRange rangeBody = NSMakeRange(rangeHead.location+rangeHead.length, rangeTail.location-(rangeHead.location+rangeHead.length));
 
                                 NSString* strNativeUrl = [strTemp substringWithRange:rangeBody];
+                                NSLog(@"strNativeUrl[len=%d]=%@", [strNativeUrl length], strNativeUrl);
+
+                                strNativeUrl = [strNativeUrl substringFromIndex:[@"wxpay://c2cbizmessagehandler/hongbao/receivehongbao?" length]];
+                                NSLog(@"strNativeUrl[len=%d]=%@", [strNativeUrl length], strNativeUrl);
+
+
                                 
+                                NSDictionary* dictNativeUrl = [_logos_static_class_lookup$WCBizUtil() performSelector:@selector(dictionaryWithDecodedComponets:separator:) withObject:strNativeUrl withObject:@"&"];
 
-                                NSRange rangeHead = [strTemp rangeOfString:@"wxpay://c2cbizmessagehandler/hongbao/receivehongbao?"];
-                                if (NSNotFound != rangeHead.location)
+
+
+
+
+
+
+
+                                NSMutableDictionary* dictParam = [NSMutableDictionary dictionary];
+                                [dictParam setObject:[dictNativeUrl objectForKey:@"channelid"] forKey:@"channelId"];            
+                                [dictParam setObject:[contact m_nsHeadImgUrl] forKey:@"headImg"];                               
+                                [dictParam setObject:[dictNativeUrl objectForKey:@"msgtype"] forKey:@"msgType"];                
+                                [dictParam setObject:strNativeUrl forKey:@"nativeUrl"];                                         
+                                [dictParam setObject:[contact getContactDisplayName] forKey:@"nickName"];                       
+                                [dictParam setObject:[dictNativeUrl objectForKey:@"sendid"] forKey:@"sendId"];                  
+                                [dictParam setObject:[msgWrap m_nsFromUsr] forKey:@"sessionUserName"];                          
+                                NSLog(@"dictParam=%@", dictParam);
+
+                                
+                                double delayInSeconds = [readConfig(STR_KEY_DELAY_SEC) floatValue];
+                                dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
+                                dispatch_after(popTime, dispatch_get_main_queue(), ^(void)
                                 {
-                                    NSRange rangeTail = [strTemp rangeOfString:@"]]></nativeurl>"];
-                                    NSRange rangeBody = NSMakeRange(rangeHead.location+rangeHead.length, rangeTail.location-(rangeHead.location+rangeHead.length));
-
-                                    NSString* strTrip = [strTemp substringWithRange:rangeBody];
                                     
-
-                                    if (nil == g_MMServiceCenter)
-                                    {
-                                        g_MMServiceCenter = [objc_getClass("MMServiceCenter") defaultCenter]; 
-                                        
-                                    }
-
-                                    if (g_MMServiceCenter)
-                                    {
-                                        
-                                        if (nil == g_WCRedEnvelopesLogicMgr)
-                                        {
-                                            
-                                            
-                                                g_WCRedEnvelopesLogicMgr = [g_MMServiceCenter getService:NSClassFromString(@"WCRedEnvelopesLogicMgr")]; 
-                                                
-                                            
-                                        }
-
-                                        if (g_WCRedEnvelopesLogicMgr)
-                                        {
-                                            
-
-                                            CContactMgr* contactMgr = [g_MMServiceCenter performSelector:@selector(getService:) withObject:[objc_getClass("CContactMgr") class]];
-                                            CContact* contact = [contactMgr getSelfContact];
-
-                                            BOOL bMsgFromMe = [[msgWrap m_nsFromUsr] isEqualToString:[contact m_nsUsrName]]; 
-                                            BOOL bOpenRedEnvelopes = NO; 
-
-                                            if (NO == [msgWrap IsChatRoomMessage]) 
-                                            {
-                                                
-                                                if (bMsgFromMe)
-                                                {
-                                                    if ([readConfig(STR_KEY_SWITCH_SINGLE) boolValue] && [readConfig(STR_KEY_SWITCH_MINE) boolValue])
-                                                    {
-                                                        bOpenRedEnvelopes = YES;
-                                                    }
-                                                    else
-                                                    {
-                                                        NSLog(@"Single RedEnvelop from me, ignore it");
-                                                    }
-                                                }
-                                                
-                                                else
-                                                {
-                                                    if ([readConfig(STR_KEY_SWITCH_SINGLE) boolValue])
-                                                    {
-                                                        bOpenRedEnvelopes = YES;
-                                                    }
-                                                    else
-                                                    {
-                                                        NSLog(@"Single RedEnvelop to me, ignore it");
-                                                    }
-                                                }
-                                            }
-                                            else 
-                                            {
-                                                
-                                                if (bMsgFromMe)
-                                                {
-                                                    if ([readConfig(STR_KEY_SWITCH_CHAT) boolValue] && [readConfig(STR_KEY_SWITCH_MINE) boolValue])
-                                                    {
-                                                        bOpenRedEnvelopes = YES;
-                                                    }
-                                                    else
-                                                    {
-                                                        NSLog(@"Chat RedEnvelop from me, ignore it");
-                                                    }
-                                                }
-                                                
-                                                else
-                                                {
-                                                    if ([readConfig(STR_KEY_SWITCH_CHAT) boolValue])
-                                                    {
-                                                        bOpenRedEnvelopes = YES;
-                                                    }
-                                                    else
-                                                    {
-                                                        NSLog(@"Chat RedEnvelop to me, ignore it");
-                                                    }
-                                                }
-                                            }
-
-                                            
-                                            if (bOpenRedEnvelopes)
-                                            {
-                                                NSDictionary* dictNativeUrl = [_logos_static_class_lookup$WCBizUtil() performSelector:@selector(dictionaryWithDecodedComponets:separator:) withObject:strTrip withObject:@"&"];
-
-
-
-
-
-
-
-
-
-                                                NSMutableDictionary* dictParam = [NSMutableDictionary dictionary];
-                                                [dictParam setObject:[dictNativeUrl objectForKey:@"channelid"] forKey:@"channelId"];            
-                                                [dictParam setObject:[contact m_nsHeadImgUrl] forKey:@"headImg"];                               
-                                                [dictParam setObject:[dictNativeUrl objectForKey:@"msgtype"] forKey:@"msgType"];                
-                                                [dictParam setObject:strNativeUrl forKey:@"nativeUrl"];                                         
-                                                [dictParam setObject:[contact getContactDisplayName] forKey:@"nickName"];                       
-                                                [dictParam setObject:[dictNativeUrl objectForKey:@"sendid"] forKey:@"sendId"];                  
-                                                [dictParam setObject:[msgWrap m_nsFromUsr] forKey:@"sessionUserName"];                          
-                                                
-
-                                                
-                                                double delayInSeconds = [readConfig(STR_KEY_DELAY_SEC) floatValue];
-                                                dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
-                                                dispatch_after(popTime, dispatch_get_main_queue(), ^(void)
-                                                               {
-                                                                   
-                                                                   [g_WCRedEnvelopesLogicMgr OpenRedEnvelopesRequest:dictParam];
-                                                               });
-                                            }
-                                        }
-                                    }
-                                }
+                                    [g_WCRedEnvelopesLogicMgr OpenRedEnvelopesRequest:dictParam];
+                                });
                             }
                         }
                     }
@@ -310,6 +366,7 @@ static void _logos_method$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$(
             }
         }
     }
+PROC_END
 
     _logos_orig$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$(self, _cmd, arg1, arg2);
 }
@@ -381,6 +438,20 @@ static void _logos_method$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$(CMessageD
 
 
 #pragma mark - CMessageMgr
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -501,4 +572,4 @@ static void _logos_method$_ungrouped$CMessageMgr$onRevokeMsg$(CMessageMgr* self,
 
 static __attribute__((constructor)) void _logosLocalInit() {
 {Class _logos_class$_ungrouped$CSyncBaseEvent = objc_getClass("CSyncBaseEvent"); MSHookMessageEx(_logos_class$_ungrouped$CSyncBaseEvent, @selector(NotifyFromPrtl:MessageInfo:), (IMP)&_logos_method$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$, (IMP*)&_logos_orig$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$);Class _logos_class$_ungrouped$CMessageDB = objc_getClass("CMessageDB"); MSHookMessageEx(_logos_class$_ungrouped$CMessageDB, @selector(DelMsg:MsgList:DelAll:), (IMP)&_logos_method$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$, (IMP*)&_logos_orig$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$);Class _logos_class$_ungrouped$CMessageMgr = objc_getClass("CMessageMgr"); MSHookMessageEx(_logos_class$_ungrouped$CMessageMgr, @selector(onRevokeMsg:), (IMP)&_logos_method$_ungrouped$CMessageMgr$onRevokeMsg$, (IMP*)&_logos_orig$_ungrouped$CMessageMgr$onRevokeMsg$);} }
-#line 495 "/Users/lbh/Documents/My/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop.xm"
+#line 566 "/Users/KAGE/Documents/My/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop.xm"

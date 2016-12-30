@@ -73,6 +73,9 @@
 
 @interface CContactMgr : MMService
 - (id)getSelfContact;
+
+- (id)getContactByName:(id)arg1;
+- (id)getContactByNameNotMySelf:(id)arg1; //deprecated
 @end
 
 
@@ -86,6 +89,7 @@
 @end
 
 @interface CContact : CBaseContact
++ (id)genChatRoomName:(id)arg1;
 @end
 
 

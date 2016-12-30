@@ -45,6 +45,10 @@
 #import "HeaderForWeChatRedEnvelop.h"
 
 
+#define PROC_BEGIN do {
+#define PROC_END } while(0);
+
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
 开关(自)：	1	1	1	1	0	0	0	0
@@ -60,8 +64,10 @@
 #define STR_FILE_CONFIG @"/var/mobile/Media/iTunes_Control/iTunes/ConfigForWeChatRedEnvelop.plist"
 #define STR_KEY_SWITCH_MAIN         @"MainSwitch"       //总开关
 #define STR_KEY_SWITCH_MINE         @"MineSwitch"       //'己方'发出的红包
-#define STR_KEY_SWITCH_SINGLE       @"SingleSwitch"     //单人（非群）红包
+#define STR_KEY_SWITCH_SINGLE       @"SingleSwitch"     //单人红包（即：非群红包）
+#define STR_KEY_IGNORE_SINGLE       @"IgnoreSingle"     //忽略单人列表
 #define STR_KEY_SWITCH_CHAT         @"ChatSwitch"       //群红包
+#define STR_KEY_IGNORE_CHAT         @"IgnoreChat"       //忽略群聊列表
 #define STR_KEY_DELAY_SEC           @"DelaySeconds"     //延时时长
 #define STR_KEY_PREVENTREVOKEMSG    @"PreventRevokeMsg" //禁止撤回消息
 
@@ -73,11 +79,41 @@ static id readConfig(NSString* strKey)
     return [dict objectForKey:strKey];
 }
 
+static BOOL isContain(NSString* strKey, id idList)
+{
+    if (idList && 0<[idList count])
+    {
+        for (NSString* obj in idList)
+        {
+            //NSLog(@"obj=%@", obj);
+            if ([strKey isEqualToString:obj])
+            {
+                NSLog(@"~~~ Bingo! ~~~~");
+                return YES;
+            }
+        }
+    }
+
+    return NO;
+}
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 MMServiceCenter* g_MMServiceCenter = nil;
 WCRedEnvelopesLogicMgr* g_WCRedEnvelopesLogicMgr = nil;
 
+/*
+%hook CContact
++ (id)genChatRoomName:(id)arg1
+{
+    NSLog(@"[### CContact+genChatRoomName ###] arg1[class=%@]=%@", [arg1 class], arg1);
+    id idTemp = %orig;
+    NSLog(@"[### CContact+genChatRoomName ###] ret=%@", idTemp);
+    return idTemp;
+    //return %orig;
+}
+%end
+*/
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 %hook CSyncBaseEvent
@@ -85,6 +121,7 @@ WCRedEnvelopesLogicMgr* g_WCRedEnvelopesLogicMgr = nil;
 {
     //NSLog(@"[### CSyncBaseEvent-NotifyFromPrtl ###] arg1=%lu, arg2=%@", arg1, arg2);
 
+PROC_BEGIN
 #if 0
     id idValue = readConfig(STR_KEY_SWITCH_MAIN);
     NSLog(@"[### %@=%d[class=%@]", STR_KEY_SWITCH_MAIN, [idValue boolValue], [idValue class]);
@@ -105,6 +142,7 @@ WCRedEnvelopesLogicMgr* g_WCRedEnvelopesLogicMgr = nil;
 
 #if 0
                 NSLog(@"111111111111111111111111111111111111111111111111");
+                NSLog(@"m_oWCPayInfoItem:%@", [msgWrap m_oWCPayInfoItem]);
                 NSLog(@"m_uiEmojiStatFlag:%lu", [msgWrap m_uiEmojiStatFlag]);
                 NSLog(@"m_uiSendTime:%lu", [msgWrap m_uiSendTime]);
 
@@ -143,6 +181,42 @@ WCRedEnvelopesLogicMgr* g_WCRedEnvelopesLogicMgr = nil;
                 NSLog(@"333333333333333333333333333333333333333333333333");
 #endif
 
+
+                if (nil == g_MMServiceCenter)
+                {
+                    g_MMServiceCenter = [objc_getClass("MMServiceCenter") defaultCenter]; //getclass method-1: objc_getClass
+                    NSLog(@"g_MMServiceCenter=%@", g_MMServiceCenter);
+
+                    if (g_MMServiceCenter)
+                    {
+                        if (nil == g_WCRedEnvelopesLogicMgr)
+                        {
+                            if ([g_MMServiceCenter respondsToSelector:@selector(getService:)])
+                            {
+                                g_WCRedEnvelopesLogicMgr = [g_MMServiceCenter getService:NSClassFromString(@"WCRedEnvelopesLogicMgr")]; //getclass method-2: NSClassFromString
+                                //NSLog(@"g_WCRedEnvelopesLogicMgr=%@", g_WCRedEnvelopesLogicMgr);
+                            }
+                            else
+                            {
+                                NSLog(@"Selector is deprecated: MMServiceCenter-getService:");
+                            }
+                        }
+                    }
+                }
+
+
+                if (nil == g_MMServiceCenter)
+                {
+                    NSLog(@"MMServiceCenter is nil");
+                    break;
+                }
+                if (nil == g_WCRedEnvelopesLogicMgr)
+                {
+                    NSLog(@"WCRedEnvelopesLogicMgr is nil");
+                    break;
+                }
+
+
                 if ([msgWrap IsAppMessage])
                 {
                     if (49 == [msgWrap m_uiMessageType])
@@ -157,6 +231,83 @@ WCRedEnvelopesLogicMgr* g_WCRedEnvelopesLogicMgr = nil;
 
                             NSLog(@"~~~~~ 天噜啦！快来抢红包啊！！！ ~~~~~");
 
+                            CContactMgr* contactMgr = [g_MMServiceCenter performSelector:@selector(getService:) withObject:[objc_getClass("CContactMgr") class]];
+                            CContact* contact = [contactMgr getSelfContact];
+
+                            BOOL bMsgFromMe = [[msgWrap m_nsFromUsr] isEqualToString:[contact m_nsUsrName]]; //是否为'己方'发出的消息
+
+                            if (NO == [msgWrap IsChatRoomMessage]) //非群红包
+                            {
+                                //'己方'给'对方'单发的红包（即非群红包）
+                                if (bMsgFromMe)
+                                {
+                                    if (NO == ([readConfig(STR_KEY_SWITCH_SINGLE) boolValue] && [readConfig(STR_KEY_SWITCH_MINE) boolValue]))
+                                    {
+                                        NSLog(@"Single RedEnvelop from me, ignore it");
+                                        break;
+                                    }
+                                }
+                                //'对方'给'己方'单发的红包
+                                else
+                                {
+                                    if (NO == [readConfig(STR_KEY_SWITCH_SINGLE) boolValue])
+                                    {
+                                        NSLog(@"Single RedEnvelop to me, ignore it");
+                                        break;
+                                    }
+
+                                    //Begin 检测此用户是否在忽略列表中
+                                    NSString* strName = [msgWrap GetChatName];
+                                    NSLog(@"strName=%@", strName);
+                                    id idList = readConfig(STR_KEY_IGNORE_SINGLE);
+                                    if (isContain(strName, idList))
+                                    {
+                                        NSLog(@"This user in the list of ignore.");
+                                        break;
+                                    }
+                                    //End
+                                }
+                            }
+                            else //群红包
+                            {
+                                //Begin 检测此群是否在忽略列表中
+                                CContact* contactTemp = [contactMgr getContactByName:[msgWrap GetChatName]];
+                                if (nil != contactTemp)
+                                {
+                                    NSLog(@"getContactByName=%@", contactTemp);
+                                    NSString* strNickName = [contactTemp m_nsNickName];
+                                    NSLog(@"strNickName=%@", strNickName);
+                                    id idList = readConfig(STR_KEY_IGNORE_CHAT);
+                                    if (isContain(strNickName, idList))
+                                    {
+                                        NSLog(@"This chat in the list of ignore.");
+                                        break;
+                                    }
+                                }
+                                //End
+
+                                //'己方'发出的群红包
+                                if (bMsgFromMe)
+                                {
+                                    if (NO == ([readConfig(STR_KEY_SWITCH_CHAT) boolValue] && [readConfig(STR_KEY_SWITCH_MINE) boolValue]))
+                                    {
+                                        NSLog(@"Chat RedEnvelop from me, ignore it");
+                                        break;
+                                    }
+                                }
+                                //'对方'发出的群红包
+                                else
+                                {
+                                    if (NO == [readConfig(STR_KEY_SWITCH_CHAT) boolValue])
+                                    {
+                                        NSLog(@"Chat RedEnvelop to me, ignore it");
+                                        break;
+                                    }
+                                }
+                            }
+
+
+                            NSLog(@"~~~~~ 准备抢红包！！！ ~~~~~");
                             //<nativeurl><![CDATA[wxpay://c2cbizmessagehandler/hongbao/receivehongbao?msgtype=囧&channelid=囧&sendid=囧&sendusername=囧&ver=囧&sign=囧]]></nativeurl>
                             //截取 "wxpay://c2cbizmessagehandler/hongbao/receivehongbao?" 和 "]]></nativeurl>" 之间的内容
                             NSString* strTemp = [msgWrap m_nsContent];
@@ -167,135 +318,40 @@ WCRedEnvelopesLogicMgr* g_WCRedEnvelopesLogicMgr = nil;
                                 NSRange rangeBody = NSMakeRange(rangeHead.location+rangeHead.length, rangeTail.location-(rangeHead.location+rangeHead.length));
 
                                 NSString* strNativeUrl = [strTemp substringWithRange:rangeBody];
-                                //NSLog(@"strNativeUrl[len=%d]=%@", [strNativeUrl length], strNativeUrl);
+                                NSLog(@"strNativeUrl[len=%d]=%@", [strNativeUrl length], strNativeUrl);
 
-                                NSRange rangeHead = [strTemp rangeOfString:@"wxpay://c2cbizmessagehandler/hongbao/receivehongbao?"];
-                                if (NSNotFound != rangeHead.location)
-                                {
-                                    NSRange rangeTail = [strTemp rangeOfString:@"]]></nativeurl>"];
-                                    NSRange rangeBody = NSMakeRange(rangeHead.location+rangeHead.length, rangeTail.location-(rangeHead.location+rangeHead.length));
+                                strNativeUrl = [strNativeUrl substringFromIndex:[@"wxpay://c2cbizmessagehandler/hongbao/receivehongbao?" length]];
+                                NSLog(@"strNativeUrl[len=%d]=%@", [strNativeUrl length], strNativeUrl);
 
-                                    NSString* strTrip = [strTemp substringWithRange:rangeBody];
-                                    //NSLog(@"strTrip[len=%d]=%@", [strTrip length], strTrip);
 
-                                    if (nil == g_MMServiceCenter)
-                                    {
-                                        g_MMServiceCenter = [objc_getClass("MMServiceCenter") defaultCenter]; //getclass method-1: objc_getClass
-                                        //NSLog(@"g_MMServiceCenter=%@", g_MMServiceCenter);
-                                    }
-
-                                    if (g_MMServiceCenter)
-                                    {
-                                        //NSLog(@"g_MMServiceCenter=%@", g_MMServiceCenter);
-                                        if (nil == g_WCRedEnvelopesLogicMgr)
-                                        {
-                                            //if ([g_MMServiceCenter respondsToSelector:@selector(getService:)])
-                                            //{
-                                                g_WCRedEnvelopesLogicMgr = [g_MMServiceCenter getService:NSClassFromString(@"WCRedEnvelopesLogicMgr")]; //getclass method-2: NSClassFromString
-                                                //NSLog(@"g_WCRedEnvelopesLogicMgr=%@", g_WCRedEnvelopesLogicMgr);
-                                            //}
-                                        }
-
-                                        if (g_WCRedEnvelopesLogicMgr)
-                                        {
-                                            //NSLog(@"g_WCRedEnvelopesLogicMgr=%@", g_WCRedEnvelopesLogicMgr);
-
-                                            CContactMgr* contactMgr = [g_MMServiceCenter performSelector:@selector(getService:) withObject:[objc_getClass("CContactMgr") class]];
-                                            CContact* contact = [contactMgr getSelfContact];
-
-                                            BOOL bMsgFromMe = [[msgWrap m_nsFromUsr] isEqualToString:[contact m_nsUsrName]]; //是否为'己方'发出的消息
-                                            BOOL bOpenRedEnvelopes = NO; //是否打开红包
-
-                                            if (NO == [msgWrap IsChatRoomMessage]) //非群红包
-                                            {
-                                                //'己方'给'对方'单发的红包（即非群红包）
-                                                if (bMsgFromMe)
-                                                {
-                                                    if ([readConfig(STR_KEY_SWITCH_SINGLE) boolValue] && [readConfig(STR_KEY_SWITCH_MINE) boolValue])
-                                                    {
-                                                        bOpenRedEnvelopes = YES;
-                                                    }
-                                                    else
-                                                    {
-                                                        NSLog(@"Single RedEnvelop from me, ignore it");
-                                                    }
-                                                }
-                                                //'对方'给'己方'单发的红包
-                                                else
-                                                {
-                                                    if ([readConfig(STR_KEY_SWITCH_SINGLE) boolValue])
-                                                    {
-                                                        bOpenRedEnvelopes = YES;
-                                                    }
-                                                    else
-                                                    {
-                                                        NSLog(@"Single RedEnvelop to me, ignore it");
-                                                    }
-                                                }
-                                            }
-                                            else //群红包
-                                            {
-                                                //'己方'发出的群红包
-                                                if (bMsgFromMe)
-                                                {
-                                                    if ([readConfig(STR_KEY_SWITCH_CHAT) boolValue] && [readConfig(STR_KEY_SWITCH_MINE) boolValue])
-                                                    {
-                                                        bOpenRedEnvelopes = YES;
-                                                    }
-                                                    else
-                                                    {
-                                                        NSLog(@"Chat RedEnvelop from me, ignore it");
-                                                    }
-                                                }
-                                                //'对方'发出的群红包
-                                                else
-                                                {
-                                                    if ([readConfig(STR_KEY_SWITCH_CHAT) boolValue])
-                                                    {
-                                                        bOpenRedEnvelopes = YES;
-                                                    }
-                                                    else
-                                                    {
-                                                        NSLog(@"Chat RedEnvelop to me, ignore it");
-                                                    }
-                                                }
-                                            }
-
-                                            //打开红包
-                                            if (bOpenRedEnvelopes)
-                                            {
-                                                NSDictionary* dictNativeUrl = [%c(WCBizUtil) performSelector:@selector(dictionaryWithDecodedComponets:separator:) withObject:strTrip withObject:@"&"];
+                                //打开红包
+                                NSDictionary* dictNativeUrl = [%c(WCBizUtil) performSelector:@selector(dictionaryWithDecodedComponets:separator:) withObject:strNativeUrl withObject:@"&"];
 #if 0
-                                                NSLog(@"dictNativeUrl=%@", dictNativeUrl);
-
-                                                NSLog(@"[contact m_nsHeadImgUrl]:%@", [contact m_nsHeadImgUrl]);
-                                                NSLog(@"[contact m_nsUsrName]:%@", [contact m_nsUsrName]);
-                                                NSLog(@"[contact m_nsNickName]:%@", [contact m_nsNickName]);
-                                                NSLog(@"[contact getContactDisplayUsrName]:%@", [contact getContactDisplayUsrName]);
-                                                NSLog(@"[contact getContactDisplayName]:%@", [contact getContactDisplayName]);
+                                NSLog(@"dictNativeUrl=%@", dictNativeUrl);
+                                NSLog(@"[contact m_nsHeadImgUrl]:%@", [contact m_nsHeadImgUrl]);
+                                NSLog(@"[contact m_nsUsrName]:%@", [contact m_nsUsrName]);
+                                NSLog(@"[contact m_nsNickName]:%@", [contact m_nsNickName]);
+                                NSLog(@"[contact getContactDisplayUsrName]:%@", [contact getContactDisplayUsrName]);
+                                NSLog(@"[contact getContactDisplayName]:%@", [contact getContactDisplayName]);
 #endif
-                                                NSMutableDictionary* dictParam = [NSMutableDictionary dictionary];
-                                                [dictParam setObject:[dictNativeUrl objectForKey:@"channelid"] forKey:@"channelId"];            //channelId
-                                                [dictParam setObject:[contact m_nsHeadImgUrl] forKey:@"headImg"];                               //headImg
-                                                [dictParam setObject:[dictNativeUrl objectForKey:@"msgtype"] forKey:@"msgType"];                //msgType
-                                                [dictParam setObject:strNativeUrl forKey:@"nativeUrl"];                                         //nativeUrl
-                                                [dictParam setObject:[contact getContactDisplayName] forKey:@"nickName"];                       //nickName
-                                                [dictParam setObject:[dictNativeUrl objectForKey:@"sendid"] forKey:@"sendId"];                  //sendId
-                                                [dictParam setObject:[msgWrap m_nsFromUsr] forKey:@"sessionUserName"];                          //sessionUserName
-                                                //NSLog(@"dictParam=%@", dictParam);
+                                NSMutableDictionary* dictParam = [NSMutableDictionary dictionary];
+                                [dictParam setObject:[dictNativeUrl objectForKey:@"channelid"] forKey:@"channelId"];            //channelId
+                                [dictParam setObject:[contact m_nsHeadImgUrl] forKey:@"headImg"];                               //headImg
+                                [dictParam setObject:[dictNativeUrl objectForKey:@"msgtype"] forKey:@"msgType"];                //msgType
+                                [dictParam setObject:strNativeUrl forKey:@"nativeUrl"];                                         //nativeUrl
+                                [dictParam setObject:[contact getContactDisplayName] forKey:@"nickName"];                       //nickName
+                                [dictParam setObject:[dictNativeUrl objectForKey:@"sendid"] forKey:@"sendId"];                  //sendId
+                                [dictParam setObject:[msgWrap m_nsFromUsr] forKey:@"sessionUserName"];                          //sessionUserName
+                                NSLog(@"dictParam=%@", dictParam);
 
-                                                //N秒后开抢
-                                                double delayInSeconds = [readConfig(STR_KEY_DELAY_SEC) floatValue];
-                                                dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
-                                                dispatch_after(popTime, dispatch_get_main_queue(), ^(void)
-                                                               {
-                                                                   //NSLog(@"抢！抢！抢！");
-                                                                   [g_WCRedEnvelopesLogicMgr OpenRedEnvelopesRequest:dictParam];
-                                                               });
-                                            }
-                                        }
-                                    }
-                                }
+                                //N秒后开抢
+                                double delayInSeconds = [readConfig(STR_KEY_DELAY_SEC) floatValue];
+                                dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
+                                dispatch_after(popTime, dispatch_get_main_queue(), ^(void)
+                                {
+                                    //NSLog(@"抢！抢！抢！");
+                                    [g_WCRedEnvelopesLogicMgr OpenRedEnvelopesRequest:dictParam];
+                                });
                             }
                         }
                     }
@@ -303,6 +359,7 @@ WCRedEnvelopesLogicMgr* g_WCRedEnvelopesLogicMgr = nil;
             }
         }
     }
+PROC_END
 
     %orig;
 }
@@ -375,6 +432,20 @@ BOOL g_bRevokeMsgFromOther = NO; //标识'对方'撤销消息
 
 #pragma mark - CMessageMgr
 %hook CMessageMgr
+/*
+- (void)AsyncOnAddMsg:(NSString*)arg1 MsgWrap:(CMessageWrap*)arg2
+{
+    NSLog(@"### CMessageMgr-AsyncOnAddMsg MsgWrap, arg1=%@, arg2=%@ ###", arg1, arg2);
+    NSLog(@"m_oWCPayInfoItem:%@", [arg2 m_oWCPayInfoItem]);
+    NSLog(@"m_c2cNativeUrl:%@", [[arg2 m_oWCPayInfoItem] m_c2cNativeUrl]);
+
+    NSString* nativeUrl = [[arg2 m_oWCPayInfoItem] m_c2cNativeUrl];
+    nativeUrl = [nativeUrl substringFromIndex:[@"wxpay://c2cbizmessagehandler/hongbao/receivehongbao?" length]];
+    NSLog(@"nativeUrl:%@", nativeUrl);
+
+	%orig;
+}
+*/
 
 //'对方'撤回触发
 - (void)onRevokeMsg:(id)arg1
