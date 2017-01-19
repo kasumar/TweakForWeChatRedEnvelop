@@ -37,3 +37,14 @@ iOS自动抢红包插件 for 微信（6.2.0 ~ 6.5.2，更老的版本我没试�
 1、非前台状态下, 请关闭群聊的“消息免打扰”
 
 2、通过Cydia安装Watchdog，可以设置微信常驻后台运行
+
+
+---------------------------------------------------------------------------------------
+![shot](https://github.com/kasumar/TweakForWeChatRedEnvelop/raw/master/screenshot/1.png)
+![shot](https://github.com/kasumar/TweakForWeChatRedEnvelop/raw/master/screenshot/2.png)
+![shot](https://github.com/kasumar/TweakForWeChatRedEnvelop/raw/master/screenshot/3.png)
+![shot](https://github.com/kasumar/TweakForWeChatRedEnvelop/raw/master/screenshot/4.png)
+![shot](https://github.com/kasumar/TweakForWeChatRedEnvelop/raw/master/screenshot/5.png)
+![shot](https://github.com/kasumar/TweakForWeChatRedEnvelop/raw/master/screenshot/6.png)
+![shot](https://github.com/kasumar/TweakForWeChatRedEnvelop/raw/master/screenshot/7.png)
+![shot](https://github.com/kasumar/TweakForWeChatRedEnvelop/raw/master/screenshot/8.png)
