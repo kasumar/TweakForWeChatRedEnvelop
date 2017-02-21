@@ -101,19 +101,24 @@ static BOOL isContain(NSString* strKey, id idList)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 MMServiceCenter* g_MMServiceCenter = nil;
 WCRedEnvelopesLogicMgr* g_WCRedEnvelopesLogicMgr = nil;
+BOOL g_bHasTimingIdentifier = NO;
+BOOL g_bRobbing = NO; //标识是否抢红包
+NSDictionary* g_dictParam = [NSMutableDictionary dictionary];
 
-/*
-%hook CContact
-+ (id)genChatRoomName:(id)arg1
+
+//延时抢红包
+static void delayRobbing(NSDictionary* dictParam)
 {
-    NSLog(@"[### CContact+genChatRoomName ###] arg1[class=%@]=%@", [arg1 class], arg1);
-    id idTemp = %orig;
-    NSLog(@"[### CContact+genChatRoomName ###] ret=%@", idTemp);
-    return idTemp;
-    //return %orig;
+    //N秒后开抢
+    double delayInSeconds = [readConfig(STR_KEY_DELAY_SEC) floatValue];
+    dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
+    dispatch_after(popTime, dispatch_get_main_queue(), ^(void)
+    {
+        NSLog(@"抢！抢！抢！");
+        [g_WCRedEnvelopesLogicMgr OpenRedEnvelopesRequest:dictParam];
+    });
 }
-%end
-*/
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 %hook CSyncBaseEvent
@@ -184,6 +189,13 @@ PROC_BEGIN
 
                 if (nil == g_MMServiceCenter)
                 {
+                    NSString* strVersion = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"];//x.x.x
+                    if (NSOrderedDescending == [strVersion compare:@"6.5.2" options:NSCaseInsensitiveSearch])
+                    {
+                        NSLog(@"WeChat Version=%@, has 'timingIdentifier' param", strVersion);
+                        g_bHasTimingIdentifier = YES;
+                    }
+
                     g_MMServiceCenter = [objc_getClass("MMServiceCenter") defaultCenter]; //getclass method-1: objc_getClass
                     NSLog(@"g_MMServiceCenter=%@", g_MMServiceCenter);
 
@@ -307,10 +319,15 @@ PROC_BEGIN
                             }
 
 
-                            NSLog(@"~~~~~ 准备抢红包！！！ ~~~~~");
                             //<nativeurl><![CDATA[wxpay://c2cbizmessagehandler/hongbao/receivehongbao?msgtype=囧&channelid=囧&sendid=囧&sendusername=囧&ver=囧&sign=囧]]></nativeurl>
                             //截取 "wxpay://c2cbizmessagehandler/hongbao/receivehongbao?" 和 "]]></nativeurl>" 之间的内容
                             NSString* strTemp = [msgWrap m_nsContent];
+                            if (NSNotFound == [strTemp rangeOfString:@"wxpay://"].location)
+                            {
+                                break;
+                            }
+
+                            NSLog(@"~~~~~ 准备抢红包！！！ ~~~~~");
                             NSRange rangeHead = [strTemp rangeOfString:@"<nativeurl><![CDATA["];
                             if (NSNotFound != rangeHead.location)
                             {
@@ -318,15 +335,28 @@ PROC_BEGIN
                                 NSRange rangeBody = NSMakeRange(rangeHead.location+rangeHead.length, rangeTail.location-(rangeHead.location+rangeHead.length));
 
                                 NSString* strNativeUrl = [strTemp substringWithRange:rangeBody];
-                                NSLog(@"strNativeUrl[len=%d]=%@", [strNativeUrl length], strNativeUrl);
+                                //NSLog(@"strNativeUrl[len=%d]=%@", [strNativeUrl length], strNativeUrl);
 
-                                strNativeUrl = [strNativeUrl substringFromIndex:[@"wxpay://c2cbizmessagehandler/hongbao/receivehongbao?" length]];
-                                NSLog(@"strNativeUrl[len=%d]=%@", [strNativeUrl length], strNativeUrl);
-
+                                NSString* strTrip = [strNativeUrl substringFromIndex:[@"wxpay://c2cbizmessagehandler/hongbao/receivehongbao?" length]];
+                                //NSLog(@"strTrip[len=%d]=%@", [strTrip length], strTrip);
 
                                 //打开红包
-                                NSDictionary* dictNativeUrl = [%c(WCBizUtil) performSelector:@selector(dictionaryWithDecodedComponets:separator:) withObject:strNativeUrl withObject:@"&"];
+                                NSDictionary* dictNativeUrl = [%c(WCBizUtil) performSelector:@selector(dictionaryWithDecodedComponets:separator:) withObject:strTrip withObject:@"&"];
+
 #if 0
+                                /*
+                                Feb 20 15:47:45 XXX WeChat[410] <Warning>: [### WCRedEnvelopesLogicMgr-OpenRedEnvelopesRequest ###] arg1[class=__NSDictionaryM]={
+                                    channelId = 1;
+                                    headImg = "http://wx.qlogo.cn/mmhead/ver_1/......";
+                                    msgType = 1;
+                                    nativeUrl = "wxpay://c2cbizmessagehandler/hongbao/receivehongbao?msgtype=囧&channelid=囧&sendid=囧&sendusername=囧&ver=6&sign=囧;
+                                    nickName = "囧";
+                                    sendId = 囧;
+                                    sessionUserName = "囧@chatroom";
+                                    timingIdentifier = 60DA6E85C0F610EC4813503DF8D3A38E;
+                                }
+                                */
+
                                 NSLog(@"dictNativeUrl=%@", dictNativeUrl);
                                 NSLog(@"[contact m_nsHeadImgUrl]:%@", [contact m_nsHeadImgUrl]);
                                 NSLog(@"[contact m_nsUsrName]:%@", [contact m_nsUsrName]);
@@ -334,24 +364,43 @@ PROC_BEGIN
                                 NSLog(@"[contact getContactDisplayUsrName]:%@", [contact getContactDisplayUsrName]);
                                 NSLog(@"[contact getContactDisplayName]:%@", [contact getContactDisplayName]);
 #endif
-                                NSMutableDictionary* dictParam = [NSMutableDictionary dictionary];
-                                [dictParam setObject:[dictNativeUrl objectForKey:@"channelid"] forKey:@"channelId"];            //channelId
-                                [dictParam setObject:[contact m_nsHeadImgUrl] forKey:@"headImg"];                               //headImg
-                                [dictParam setObject:[dictNativeUrl objectForKey:@"msgtype"] forKey:@"msgType"];                //msgType
-                                [dictParam setObject:strNativeUrl forKey:@"nativeUrl"];                                         //nativeUrl
-                                [dictParam setObject:[contact getContactDisplayName] forKey:@"nickName"];                       //nickName
-                                [dictParam setObject:[dictNativeUrl objectForKey:@"sendid"] forKey:@"sendId"];                  //sendId
-                                [dictParam setObject:[msgWrap m_nsFromUsr] forKey:@"sessionUserName"];                          //sessionUserName
-                                NSLog(@"dictParam=%@", dictParam);
 
-                                //N秒后开抢
-                                double delayInSeconds = [readConfig(STR_KEY_DELAY_SEC) floatValue];
-                                dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
-                                dispatch_after(popTime, dispatch_get_main_queue(), ^(void)
+                                [g_dictParam setObject:[dictNativeUrl objectForKey:@"channelid"] forKey:@"channelId"];          //channelId
+                                [g_dictParam setObject:[contact m_nsHeadImgUrl] forKey:@"headImg"];                             //headImg
+                                [g_dictParam setObject:[dictNativeUrl objectForKey:@"msgtype"] forKey:@"msgType"];              //msgType
+                                [g_dictParam setObject:strNativeUrl forKey:@"nativeUrl"];                                       //nativeUrl
+                                [g_dictParam setObject:[contact getContactDisplayName] forKey:@"nickName"];                     //nickName
+                                [g_dictParam setObject:[dictNativeUrl objectForKey:@"sendid"] forKey:@"sendId"];                //sendId
+                                [g_dictParam setObject:[msgWrap m_nsFromUsr] forKey:@"sessionUserName"];                        //sessionUserName
+
+                                //[g_dictParam setObject:?? forKey:@"timingIdentifier"]; //从v6.5.3版本开始，新增"timingIdentifier"字段，缺少此字段，打开红包的请求返回错误。目前没有在客户端找到生成该串的代码，测试发现WCRedEnvelopesLogicMgr-OnWCToHongbaoCommonResponse的res参数带有此串
+                                //NSLog(@"g_dictParam=%@", g_dictParam);
+
+                                if (g_bHasTimingIdentifier)
                                 {
-                                    //NSLog(@"抢！抢！抢！");
-                                    [g_WCRedEnvelopesLogicMgr OpenRedEnvelopesRequest:dictParam];
-                                });
+                                    NSMutableDictionary* dictParam = [NSMutableDictionary dictionary];
+
+                                    //agreeDuty = 0;
+                                    //channelId = 1;
+                                    //inWay = 0;
+                                    //msgType = 1;
+                                    //nativeUrl = "wxpay://c2cbizmessagehandler/hongbao/receivehongbao?msgtype=1&channelid=1&sendid=囧&sendusername=囧&ver=6&sign=囧";
+                                    //sendId = 囧;
+                                    [dictParam setObject:@"0" forKey:@"agreeDuty"];                                             //agreeDuty
+                                    [dictParam setObject:[dictNativeUrl objectForKey:@"channelid"] forKey:@"channelId"];        //channelId
+                                    [dictParam setObject:@"0" forKey:@"inWay"];                                                 //inWay
+                                    [dictParam setObject:[dictNativeUrl objectForKey:@"msgtype"] forKey:@"msgType"];            //msgType
+                                    [dictParam setObject:strNativeUrl forKey:@"nativeUrl"];                                     //nativeUrl
+                                    [dictParam setObject:[dictNativeUrl objectForKey:@"sendid"] forKey:@"sendId"];              //sendId
+
+                                    NSLog(@"dictParam=%@", dictParam);
+                                    [g_WCRedEnvelopesLogicMgr ReceiverQueryRedEnvelopesRequest:dictParam];
+                                    g_bRobbing = YES;
+                                }
+                                else
+                                {
+                                    delayRobbing(g_dictParam);
+                                }
                             }
                         }
                     }
@@ -563,3 +612,207 @@ BOOL g_bRevokeMsgFromOther = NO; //标识'对方'撤销消息
 }
 %end
 */
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//拆开一个红包的执行顺序：
+//WCBizUtil-dictionaryWithDecodedComponets
+//WCRedEnvelopesLogicMgr-ReceiverQueryRedEnvelopesRequest
+//WCRedEnvelopesLogicMgr-OnWCToHongbaoCommonResponse (此时，可以取到 timingIdentifier)
+//WCRedEnvelopesControlData-setM_structDicRedEnvelopesBaseInfo
+//WCRedEnvelopesControlData-m_structDicRedEnvelopesBaseInfo (此期间，共被调用10次)
+//WCRedEnvelopesReceiveControlLogic-WCRedEnvelopesReceiveHomeViewOpenRedEnvelopes
+//WCRedEnvelopesControlData-m_structDicRedEnvelopesBaseInfo
+//WCBizUtil-dictionaryWithDecodedComponets
+//WCRedEnvelopesControlData-m_structDicRedEnvelopesBaseInfo (此期间，共被调用2次)
+//WCRedEnvelopesLogicMgr-OpenRedEnvelopesRequest
+//WCRedEnvelopesLogicMgr-OnWCToHongbaoCommonResponse
+
+/*
+%hook WCBizUtil
++ (id)dictionaryWithDecodedComponets:(id)arg1 separator:(id)arg2
+{
+    NSLog(@"[### WCBizUtil-dictionaryWithDecodedComponets ###] arg1=%@, arg2=%@", arg1, arg2);
+
+    id idTemp = %orig;
+    NSLog(@"[### WCBizUtil-dictionaryWithDecodedComponets ###] idTemp[class=%@]=%@", [idTemp class], idTemp);
+
+    return idTemp;
+}
+%end
+*/
+
+
+%hook WCRedEnvelopesLogicMgr
+/*
+- (void)ReceiverQueryRedEnvelopesRequest:(id)arg1
+{
+    NSLog(@"[### WCRedEnvelopesLogicMgr-ReceiverQueryRedEnvelopesRequest ###] arg1[class=%@]=%@", [arg1 class], arg1);
+
+    //arg1[class=__NSDictionaryM]={
+	//    agreeDuty = 0;
+	//    channelId = 1;
+	//    inWay = 0;
+	//    msgType = 1;
+	//    nativeUrl = "wxpay://c2cbizmessagehandler/hongbao/receivehongbao?msgtype=1&channelid=1&sendid=囧&sendusername=囧&ver=6&sign=囧";
+	//    sendId = 囧;
+	//}
+
+    %orig;
+}
+
+- (void)OpenRedEnvelopesRequest:(id)arg1
+{
+    NSLog(@"[### WCRedEnvelopesLogicMgr-OpenRedEnvelopesRequest ###] arg1[class=%@]=%@", [arg1 class], arg1);
+
+    %orig;
+}
+*/
+
+- (void)OnWCToHongbaoCommonResponse:(id)arg1 Request:(id)arg2
+{
+    //NSLog(@"[### WCRedEnvelopesLogicMgr-OnWCToHongbaoCommonResponse ###] arg1[class=%@]=%@, arg2[class=%@]=%@", [arg1 class], arg1, [arg2 class], arg2);
+
+    %orig;
+
+PROC_BEGIN
+
+    if (NO == g_bHasTimingIdentifier || NO == g_bRobbing)
+    {
+        break;
+    }
+
+#if 1
+    if ([NSStringFromClass([arg1 class]) isEqualToString:@"HongBaoRes"])
+    {
+        HongBaoRes* hbRes = arg1;
+        //NSLog(@"666666666666666666666666666666666666666666666666");
+        //NSLog(@"HongBaoRes, retText=%@, buffer=%@", [hbRes retText], [[hbRes retText] buffer]);
+        NSData* data = [[hbRes retText] buffer];
+        if (nil != data && 0 < [data length])
+        {
+            NSError* error = nil;
+            id jsonObj = [NSJSONSerialization JSONObjectWithData:data
+                                                         options:NSJSONReadingAllowFragments//kNilOptions
+                                                           error:&error];
+            if (nil != error)
+            {
+                NSLog(@"HongBaoRes, json-error=%@", [error localizedDescription]);
+            }
+            else if (nil != jsonObj)
+            {
+                if ([NSJSONSerialization isValidJSONObject:jsonObj])
+                {
+                    //NSLog(@"HongBaoRes, jsonObj[class=%@]=%@", [jsonObj class], jsonObj);
+                    if ([jsonObj isKindOfClass:[NSDictionary class]])
+                    {
+                        id idTemp = jsonObj[@"timingIdentifier"];
+                        //NSLog(@"timingIdentifier[class=%@]=%@", [idTemp class], idTemp);
+                        if (idTemp)
+                        {
+                            [g_dictParam setObject:idTemp forKey:@"timingIdentifier"]; //从v6.5.3版本开始，新增"timingIdentifier"字段
+                            delayRobbing(g_dictParam);
+                            g_bRobbing = NO;
+                        }
+                    }
+                }
+            }
+        }
+    }
+#endif
+
+#if 0
+    if ([NSStringFromClass([arg2 class]) isEqualToString:@"HongBaoReq"])
+    {
+        HongBaoReq* hbReq = arg2;
+        NSLog(@"777777777777777777777777777777777777777777777777");
+        NSLog(@"HongBaoReq, reqText=%@, buffer=%@", [hbReq reqText], [[hbReq reqText] buffer]);
+        NSData* data = [[hbReq reqText] buffer];
+        if (nil != data && 0 < [data length])
+        {
+            NSError* error = nil;
+            id jsonObj = [NSJSONSerialization JSONObjectWithData:data
+                                                         options:NSJSONReadingAllowFragments//kNilOptions
+                                                           error:&error];
+            if (nil != error)
+            {
+                NSLog(@"HongBaoReq, json-error=%@", [error localizedDescription]);
+            }
+            else if (nil != jsonObj)
+            {
+                if ([NSJSONSerialization isValidJSONObject:jsonObj])
+                {
+                    NSLog(@"HongBaoReq, jsonObj[class=%@]=%@", [jsonObj class], jsonObj);
+                }
+            }
+        }
+    }
+#endif
+
+PROC_END
+}
+%end
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/*
+%hook WCRedEnvelopesControlData
+
+//self[class=__NSDictionaryM]={
+//    hbStatus = 2;
+//    hbType = 1;
+//    isSender = 0;
+//    receiveStatus = 0;
+//    sendHeadImg = "囧";
+//    sendId = 囧;
+//    sendNick = "囧";
+//    statusMess = "囧";
+//    timingIdentifier = 囧;
+//    watermark = "";
+//    wishing = "囧";
+//}
+
+- (id)m_structDicRedEnvelopesBaseInfo
+{
+    id idTemp = %orig;
+    NSLog(@"[### WCRedEnvelopesControlData-m_structDicRedEnvelopesBaseInfo ###] idTemp[class=%@]=%@", [idTemp class], idTemp);
+
+    return idTemp;
+}
+
+- (void)setM_structDicRedEnvelopesBaseInfo:(id)arg1
+{
+    NSLog(@"[### WCRedEnvelopesControlData-setM_structDicRedEnvelopesBaseInfo ###] arg1[class=%@]=%@", [arg1 class], arg1);
+
+    %orig;
+}
+%end
+
+
+
+%hook WCRedEnvelopesReceiveControlLogic
+- (void)WCRedEnvelopesReceiveHomeViewOpenRedEnvelopes
+{
+    id idTemp = MSHookIvar<id>(self, "m_data");
+    if (idTemp)
+    {
+        NSLog(@"[### WCRedEnvelopesReceiveControlLogic-WCRedEnvelopesReceiveHomeViewOpenRedEnvelopes ###] idTemp[class=%@]=%@", [idTemp class], idTemp);
+        if ([idTemp respondsToSelector:@selector(m_structDicRedEnvelopesBaseInfo)])
+        {
+            NSDictionary* dictTemp = [idTemp m_structDicRedEnvelopesBaseInfo];
+            NSLog(@"[### WCRedEnvelopesReceiveControlLogic-WCRedEnvelopesReceiveHomeViewOpenRedEnvelopes ###] dictTemp[class=%@]=%@", [dictTemp class], dictTemp);
+        }
+    }
+    else
+    {
+        NSLog(@"[### WCRedEnvelopesReceiveControlLogic-WCRedEnvelopesReceiveHomeViewOpenRedEnvelopes ###] ╮(╯_╰)╭");
+    }
+
+    %orig;
+}
+%end
+*/
+
+

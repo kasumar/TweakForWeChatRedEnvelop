@@ -144,4 +144,37 @@
 @property(retain, nonatomic) SKBuiltinBuffer_t *reqText; // @dynamic reqText;
 @end
 
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//@class WCPayInfoItem;
+@interface WCPayInfoItem : NSObject
+@property(retain, nonatomic) NSString *m_c2cNativeUrl; // @synthesize m_c2cNativeUrl;
+@end
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//@class WCRedEnvelopesControlData;
+@interface WCRedEnvelopesControlData : NSObject
+{
+	CMessageWrap *m_oSelectedMessageWrap;
+	NSDictionary *m_structDicRedEnvelopesBaseInfo;
+}
+@property(retain, nonatomic) CMessageWrap *m_oSelectedMessageWrap; // @synthesize m_oSelectedMessageWrap;
+@property(retain, nonatomic) NSDictionary *m_structDicRedEnvelopesBaseInfo; // @synthesize m_structDicRedEnvelopesBaseInfo;
+@end
+
+//@class WCRedEnvelopesControlLogic;
+@interface WCRedEnvelopesControlLogic : NSObject
+{
+    WCRedEnvelopesControlData *m_data;
+}
+@end
+
+//@class WCRedEnvelopesReceiveControlLogic;
+@interface WCRedEnvelopesReceiveControlLogic : WCRedEnvelopesControlLogic
+- (void)WCRedEnvelopesReceiveHomeViewOpenRedEnvelopes;
+@end
+
 #endif

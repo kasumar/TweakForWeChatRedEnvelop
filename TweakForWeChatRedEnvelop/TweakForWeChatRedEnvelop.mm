@@ -86,7 +86,7 @@ static BOOL isContain(NSString* strKey, id idList)
     {
         for (NSString* obj in idList)
         {
-            NSLog(@"obj=%@", obj);
+            
             if ([strKey isEqualToString:obj])
             {
                 NSLog(@"~~~ Bingo! ~~~~");
@@ -102,27 +102,32 @@ static BOOL isContain(NSString* strKey, id idList)
 
 MMServiceCenter* g_MMServiceCenter = nil;
 WCRedEnvelopesLogicMgr* g_WCRedEnvelopesLogicMgr = nil;
+BOOL g_bHasTimingIdentifier = NO;
+BOOL g_bRobbing = NO; 
+NSDictionary* g_dictParam = [NSMutableDictionary dictionary];
 
 
 
-
-
-
-
-
-
-
-
-
+static void delayRobbing(NSDictionary* dictParam)
+{
+    
+    double delayInSeconds = [readConfig(STR_KEY_DELAY_SEC) floatValue];
+    dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
+    dispatch_after(popTime, dispatch_get_main_queue(), ^(void)
+    {
+        NSLog(@"抢！抢！抢！");
+        [g_WCRedEnvelopesLogicMgr OpenRedEnvelopesRequest:dictParam];
+    });
+}
 
 
 
 #include <logos/logos.h>
 #include <substrate.h>
-@class CMessageDB; @class WCBizUtil; @class CMessageMgr; @class CSyncBaseEvent; 
-static void (*_logos_orig$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$)(CSyncBaseEvent*, SEL, unsigned long, id); static void _logos_method$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$(CSyncBaseEvent*, SEL, unsigned long, id); static void (*_logos_orig$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$)(CMessageDB*, SEL, id, id, BOOL); static void _logos_method$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$(CMessageDB*, SEL, id, id, BOOL); static void (*_logos_orig$_ungrouped$CMessageMgr$onRevokeMsg$)(CMessageMgr*, SEL, id); static void _logos_method$_ungrouped$CMessageMgr$onRevokeMsg$(CMessageMgr*, SEL, id); 
+@class CMessageDB; @class WCRedEnvelopesLogicMgr; @class WCBizUtil; @class CMessageMgr; @class CSyncBaseEvent; 
+static void (*_logos_orig$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$)(CSyncBaseEvent*, SEL, unsigned long, id); static void _logos_method$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$(CSyncBaseEvent*, SEL, unsigned long, id); static void (*_logos_orig$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$)(CMessageDB*, SEL, id, id, BOOL); static void _logos_method$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$(CMessageDB*, SEL, id, id, BOOL); static void (*_logos_orig$_ungrouped$CMessageMgr$onRevokeMsg$)(CMessageMgr*, SEL, id); static void _logos_method$_ungrouped$CMessageMgr$onRevokeMsg$(CMessageMgr*, SEL, id); static void (*_logos_orig$_ungrouped$WCRedEnvelopesLogicMgr$OnWCToHongbaoCommonResponse$Request$)(WCRedEnvelopesLogicMgr*, SEL, id, id); static void _logos_method$_ungrouped$WCRedEnvelopesLogicMgr$OnWCToHongbaoCommonResponse$Request$(WCRedEnvelopesLogicMgr*, SEL, id, id); 
 static __inline__ __attribute__((always_inline)) Class _logos_static_class_lookup$WCBizUtil(void) { static Class _klass; if(!_klass) { _klass = objc_getClass("WCBizUtil"); } return _klass; }
-#line 119 "/Users/KAGE/Documents/My/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop.xm"
+#line 124 "/Users/KAGE/Documents/My/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop.xm"
 
 
 static void _logos_method$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$(CSyncBaseEvent* self, SEL _cmd, unsigned long arg1, id arg2) {
@@ -191,6 +196,13 @@ PROC_BEGIN
 
                 if (nil == g_MMServiceCenter)
                 {
+                    NSString* strVersion = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"];
+                    if (NSOrderedDescending == [strVersion compare:@"6.5.2" options:NSCaseInsensitiveSearch])
+                    {
+                        NSLog(@"WeChat Version=%@, has 'timingIdentifier' param", strVersion);
+                        g_bHasTimingIdentifier = YES;
+                    }
+
                     g_MMServiceCenter = [objc_getClass("MMServiceCenter") defaultCenter]; 
                     NSLog(@"g_MMServiceCenter=%@", g_MMServiceCenter);
 
@@ -314,10 +326,15 @@ PROC_BEGIN
                             }
 
 
-                            NSLog(@"~~~~~ 准备抢红包！！！ ~~~~~");
                             
                             
                             NSString* strTemp = [msgWrap m_nsContent];
+                            if (NSNotFound == [strTemp rangeOfString:@"wxpay://"].location)
+                            {
+                                break;
+                            }
+
+                            NSLog(@"~~~~~ 准备抢红包！！！ ~~~~~");
                             NSRange rangeHead = [strTemp rangeOfString:@"<nativeurl><![CDATA["];
                             if (NSNotFound != rangeHead.location)
                             {
@@ -325,14 +342,13 @@ PROC_BEGIN
                                 NSRange rangeBody = NSMakeRange(rangeHead.location+rangeHead.length, rangeTail.location-(rangeHead.location+rangeHead.length));
 
                                 NSString* strNativeUrl = [strTemp substringWithRange:rangeBody];
-                                NSLog(@"strNativeUrl[len=%d]=%@", [strNativeUrl length], strNativeUrl);
+                                
 
-                                strNativeUrl = [strNativeUrl substringFromIndex:[@"wxpay://c2cbizmessagehandler/hongbao/receivehongbao?" length]];
-                                NSLog(@"strNativeUrl[len=%d]=%@", [strNativeUrl length], strNativeUrl);
-
+                                NSString* strTrip = [strNativeUrl substringFromIndex:[@"wxpay://c2cbizmessagehandler/hongbao/receivehongbao?" length]];
+                                
 
                                 
-                                NSDictionary* dictNativeUrl = [_logos_static_class_lookup$WCBizUtil() performSelector:@selector(dictionaryWithDecodedComponets:separator:) withObject:strNativeUrl withObject:@"&"];
+                                NSDictionary* dictNativeUrl = [_logos_static_class_lookup$WCBizUtil() performSelector:@selector(dictionaryWithDecodedComponets:separator:) withObject:strTrip withObject:@"&"];
 
 
 
@@ -341,24 +357,57 @@ PROC_BEGIN
 
 
 
-                                NSMutableDictionary* dictParam = [NSMutableDictionary dictionary];
-                                [dictParam setObject:[dictNativeUrl objectForKey:@"channelid"] forKey:@"channelId"];            
-                                [dictParam setObject:[contact m_nsHeadImgUrl] forKey:@"headImg"];                               
-                                [dictParam setObject:[dictNativeUrl objectForKey:@"msgtype"] forKey:@"msgType"];                
-                                [dictParam setObject:strNativeUrl forKey:@"nativeUrl"];                                         
-                                [dictParam setObject:[contact getContactDisplayName] forKey:@"nickName"];                       
-                                [dictParam setObject:[dictNativeUrl objectForKey:@"sendid"] forKey:@"sendId"];                  
-                                [dictParam setObject:[msgWrap m_nsFromUsr] forKey:@"sessionUserName"];                          
-                                NSLog(@"dictParam=%@", dictParam);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                [g_dictParam setObject:[dictNativeUrl objectForKey:@"channelid"] forKey:@"channelId"];          
+                                [g_dictParam setObject:[contact m_nsHeadImgUrl] forKey:@"headImg"];                             
+                                [g_dictParam setObject:[dictNativeUrl objectForKey:@"msgtype"] forKey:@"msgType"];              
+                                [g_dictParam setObject:strNativeUrl forKey:@"nativeUrl"];                                       
+                                [g_dictParam setObject:[contact getContactDisplayName] forKey:@"nickName"];                     
+                                [g_dictParam setObject:[dictNativeUrl objectForKey:@"sendid"] forKey:@"sendId"];                
+                                [g_dictParam setObject:[msgWrap m_nsFromUsr] forKey:@"sessionUserName"];                        
 
                                 
-                                double delayInSeconds = [readConfig(STR_KEY_DELAY_SEC) floatValue];
-                                dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
-                                dispatch_after(popTime, dispatch_get_main_queue(), ^(void)
+                                
+
+                                if (g_bHasTimingIdentifier)
                                 {
+                                    NSMutableDictionary* dictParam = [NSMutableDictionary dictionary];
+
                                     
-                                    [g_WCRedEnvelopesLogicMgr OpenRedEnvelopesRequest:dictParam];
-                                });
+                                    
+                                    
+                                    
+                                    
+                                    
+                                    [dictParam setObject:@"0" forKey:@"agreeDuty"];                                             
+                                    [dictParam setObject:[dictNativeUrl objectForKey:@"channelid"] forKey:@"channelId"];        
+                                    [dictParam setObject:@"0" forKey:@"inWay"];                                                 
+                                    [dictParam setObject:[dictNativeUrl objectForKey:@"msgtype"] forKey:@"msgType"];            
+                                    [dictParam setObject:strNativeUrl forKey:@"nativeUrl"];                                     
+                                    [dictParam setObject:[dictNativeUrl objectForKey:@"sendid"] forKey:@"sendId"];              
+
+                                    NSLog(@"dictParam=%@", dictParam);
+                                    [g_WCRedEnvelopesLogicMgr ReceiverQueryRedEnvelopesRequest:dictParam];
+                                    g_bRobbing = YES;
+                                }
+                                else
+                                {
+                                    delayRobbing(g_dictParam);
+                                }
                             }
                         }
                     }
@@ -570,6 +619,210 @@ static void _logos_method$_ungrouped$CMessageMgr$onRevokeMsg$(CMessageMgr* self,
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void _logos_method$_ungrouped$WCRedEnvelopesLogicMgr$OnWCToHongbaoCommonResponse$Request$(WCRedEnvelopesLogicMgr* self, SEL _cmd, id arg1, id arg2) {
+    
+
+    _logos_orig$_ungrouped$WCRedEnvelopesLogicMgr$OnWCToHongbaoCommonResponse$Request$(self, _cmd, arg1, arg2);
+
+PROC_BEGIN
+
+    if (NO == g_bHasTimingIdentifier || NO == g_bRobbing)
+    {
+        break;
+    }
+
+#if 1
+    if ([NSStringFromClass([arg1 class]) isEqualToString:@"HongBaoRes"])
+    {
+        HongBaoRes* hbRes = arg1;
+        
+        
+        NSData* data = [[hbRes retText] buffer];
+        if (nil != data && 0 < [data length])
+        {
+            NSError* error = nil;
+            id jsonObj = [NSJSONSerialization JSONObjectWithData:data
+                                                         options:NSJSONReadingAllowFragments
+                                                           error:&error];
+            if (nil != error)
+            {
+                NSLog(@"HongBaoRes, json-error=%@", [error localizedDescription]);
+            }
+            else if (nil != jsonObj)
+            {
+                if ([NSJSONSerialization isValidJSONObject:jsonObj])
+                {
+                    
+                    if ([jsonObj isKindOfClass:[NSDictionary class]])
+                    {
+                        id idTemp = jsonObj[@"timingIdentifier"];
+                        
+                        if (idTemp)
+                        {
+                            [g_dictParam setObject:idTemp forKey:@"timingIdentifier"]; 
+                            delayRobbing(g_dictParam);
+                            g_bRobbing = NO;
+                        }
+                    }
+                }
+            }
+        }
+    }
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PROC_END
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static __attribute__((constructor)) void _logosLocalInit() {
-{Class _logos_class$_ungrouped$CSyncBaseEvent = objc_getClass("CSyncBaseEvent"); MSHookMessageEx(_logos_class$_ungrouped$CSyncBaseEvent, @selector(NotifyFromPrtl:MessageInfo:), (IMP)&_logos_method$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$, (IMP*)&_logos_orig$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$);Class _logos_class$_ungrouped$CMessageDB = objc_getClass("CMessageDB"); MSHookMessageEx(_logos_class$_ungrouped$CMessageDB, @selector(DelMsg:MsgList:DelAll:), (IMP)&_logos_method$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$, (IMP*)&_logos_orig$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$);Class _logos_class$_ungrouped$CMessageMgr = objc_getClass("CMessageMgr"); MSHookMessageEx(_logos_class$_ungrouped$CMessageMgr, @selector(onRevokeMsg:), (IMP)&_logos_method$_ungrouped$CMessageMgr$onRevokeMsg$, (IMP*)&_logos_orig$_ungrouped$CMessageMgr$onRevokeMsg$);} }
-#line 566 "/Users/KAGE/Documents/My/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop.xm"
+{Class _logos_class$_ungrouped$CSyncBaseEvent = objc_getClass("CSyncBaseEvent"); MSHookMessageEx(_logos_class$_ungrouped$CSyncBaseEvent, @selector(NotifyFromPrtl:MessageInfo:), (IMP)&_logos_method$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$, (IMP*)&_logos_orig$_ungrouped$CSyncBaseEvent$NotifyFromPrtl$MessageInfo$);Class _logos_class$_ungrouped$CMessageDB = objc_getClass("CMessageDB"); MSHookMessageEx(_logos_class$_ungrouped$CMessageDB, @selector(DelMsg:MsgList:DelAll:), (IMP)&_logos_method$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$, (IMP*)&_logos_orig$_ungrouped$CMessageDB$DelMsg$MsgList$DelAll$);Class _logos_class$_ungrouped$CMessageMgr = objc_getClass("CMessageMgr"); MSHookMessageEx(_logos_class$_ungrouped$CMessageMgr, @selector(onRevokeMsg:), (IMP)&_logos_method$_ungrouped$CMessageMgr$onRevokeMsg$, (IMP*)&_logos_orig$_ungrouped$CMessageMgr$onRevokeMsg$);Class _logos_class$_ungrouped$WCRedEnvelopesLogicMgr = objc_getClass("WCRedEnvelopesLogicMgr"); MSHookMessageEx(_logos_class$_ungrouped$WCRedEnvelopesLogicMgr, @selector(OnWCToHongbaoCommonResponse:Request:), (IMP)&_logos_method$_ungrouped$WCRedEnvelopesLogicMgr$OnWCToHongbaoCommonResponse$Request$, (IMP*)&_logos_orig$_ungrouped$WCRedEnvelopesLogicMgr$OnWCToHongbaoCommonResponse$Request$);} }
+#line 819 "/Users/KAGE/Documents/My/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop/TweakForWeChatRedEnvelop.xm"
