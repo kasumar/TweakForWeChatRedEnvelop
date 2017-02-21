@@ -1,6 +1,6 @@
 Package: com.nb.TweakForWeChatRedEnvelop
 Name: TweakForWeChatRedEnvelop
-Version: 1.0-4
+Version: 1.0-5
 Description: 
 Section: System
 Depends: firmware (>= 5.0), mobilesubstrate
